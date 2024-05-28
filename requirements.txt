@@ -1,3 +1,2 @@
-netifaces
 aiohttp
 pymodbus

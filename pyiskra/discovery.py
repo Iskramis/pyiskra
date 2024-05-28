@@ -2,6 +2,7 @@ import asyncio
 import socket
 import netifaces
 import logging
+import socket
 
 log = logging.getLogger(__name__)
 
@@ -79,17 +80,19 @@ class Discovery:
             if ip:
                 broadcast_ips = [ip]
             else:
-                net_groups = [
-                    netifaces.ifaddresses(i)[netifaces.AF_INET]
-                    for i in netifaces.interfaces()
-                    if netifaces.AF_INET in netifaces.ifaddresses(i)
-                ]
+                broadcast_ips = []
+                # Get all network interfaces
+                interfaces = netifaces.interfaces()
 
-                net_ips = [item for sublist in net_groups for item in sublist]
-
-                broadcast_ips = [
-                    i["broadcast"] for i in net_ips if "broadcast" in i.keys()
-                ]
+                # Get the broadcast addresses for each interface
+                broadcast_ips = []
+                for interface in interfaces:
+                    addresses = netifaces.ifaddresses(interface)
+                    if netifaces.AF_INET in addresses:
+                        ipv4_addresses = addresses[netifaces.AF_INET]
+                        for address in ipv4_addresses:
+                            if "broadcast" in address:
+                                broadcast_ips.append(address["broadcast"])
 
             # Broadcast UDP packets to all IPs concurrently
             await asyncio.gather(
