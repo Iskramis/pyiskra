@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.poetry]
+name = "pyiskra"
+version = "1.0.0"
+description = "Python Iskra devices interface"
+authors = ["Iskra d.o.o. <razvoj.mis@iskra.eu>"]
+license = "GPL"
+readme = "README.md"
+homepage = "https://github.com/Iskramis/pyiskra"
+repository = "https://github.com/Iskramis/pyiskra"
+documentation = "https://github.com/Iskramis/pyiskra"
+keywords = ["homeautomation", "iskra", "energy meter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Home Automation",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+netifaces = "*"
+aiohttp = "*"
+pymodbus = "*"
+
+[tool.poetry.dev-dependencies]
