@@ -13,11 +13,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Iskra d.o.o.",
     author_email="razvoj.mis@iskra.eu",
-    maintainer=", ".join(
-        (
-            "Iskra <razvoj.mis@iskra.eu>",
-        )
-    ),
+    maintainer=", ".join(("Iskra <razvoj.mis@iskra.eu>",)),
     license="GPL",
     url="https://github.com/Iskramis/pyiskra",
     python_requires=">=3.8",

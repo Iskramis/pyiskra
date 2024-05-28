@@ -47,8 +47,6 @@ class SmartGateway(Device):
         self.fw_version = basic_info.sw_ver
         await self.update_child_devices()
         log.info(f"Successfully initialized {self.model} {self.serial}")
-        
-        
 
     async def update_child_devices(self):
         self.child_devices = []
@@ -112,4 +110,4 @@ class SmartGateway(Device):
         Updates the status of the smart gateway.
         """
         log.info(f"Updating status for {self.model} {self.serial}")
-        await self.update_child_devices()
+        # await self.update_child_devices()

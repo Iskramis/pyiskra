@@ -5,12 +5,6 @@ from ..exceptions import DeviceConnectionError, DeviceNotSupported
 from ..adapters import RestAPI
 
 
-impact_models = ["^IE", "^3MEM", "^7M"]
-wm_models = ["^WM"]
-measuring_centre_models = ["^MC", "^iMC", "^MT"]
-smart_gateway_models = ["^SG"]
-
-
 class Device:
     """
     Represents a base device in the Iskra system.
@@ -91,7 +85,7 @@ class Device:
             if isinstance(adapter, RestAPI):
                 return SmartGateway(adapter)
             else:
-                #only REST API is supported for SmartGateway
+                # only REST API is supported for SmartGateway
                 raise DeviceNotSupported(f"Unsupported device model: {model}")
 
         raise DeviceNotSupported(f"Unsupported device model: {model}")
