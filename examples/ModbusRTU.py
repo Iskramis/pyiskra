@@ -4,7 +4,6 @@ from pyiskra.adapters import Modbus
 
 
 async def main():
-    # Set device IP address
 
     # Create adapter
     adapter = Modbus(protocol="rtu", port="COM4")
