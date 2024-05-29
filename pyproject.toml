@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [tool.poetry]
 name = "pyiskra"
-version = "1.0.1"
+version = "1.0.2"
 description = "Python Iskra devices interface"
 authors = ["Iskra d.o.o. <razvoj.mis@iskra.eu>"]
 license = "GPL"
