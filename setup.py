@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -17,7 +17,7 @@ setup(
     license="GPL",
     url="https://github.com/Iskramis/pyiskra",
     python_requires=">=3.8",
-    packages=["pyiskra"],
+    packages=find_packages(),
     keywords=["homeautomation", "iskra", "energy meter"],
     classifiers=[
         "Programming Language :: Python :: 3",
