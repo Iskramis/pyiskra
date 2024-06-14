@@ -323,6 +323,8 @@ class RestAPI(Adapter):
         else:
             try:
                 json_data = (await self.get_resource("api")).get("device", {})
+            except NotAuthorised as e:
+                raise NotAuthorised(f"Not authorised to access the device: {e}") from e
             except Exception as e:
                 raise DeviceConnectionError(
                     f"Failed to connect to the device: {e}"
