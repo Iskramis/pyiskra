@@ -318,7 +318,7 @@ class Impact(Device):
             if handle_connection:
                 await self.adapter.open_connection()
 
-            log.info(f"Getting measurements from Modbus for {self.model} {self.serial}")
+            log.info(f"Getting counters from Modbus for {self.model} {self.serial}")
             response = await self.adapter.read_input_registers(2750, 96)
 
             direction_settings = await self.adapter.read_holding_registers(151, 1)
