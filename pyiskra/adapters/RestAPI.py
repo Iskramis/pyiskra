@@ -64,12 +64,13 @@ class RestAPI(Adapter):
                     ).encode("utf-8")
                 ).decode("utf-8")
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(
                     f"http://{self.ip_address}/{resource}", headers=headers
                 ) as response:
                     return await RestAPI.handle_response(response)
-        except aiohttp.ClientConnectionError as e:
+        except Exception as e:
             raise DeviceConnectionError(
                 f"Error occurred while making REST API call: {e}"
             ) from e
