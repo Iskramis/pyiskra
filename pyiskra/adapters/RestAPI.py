@@ -11,6 +11,7 @@ from ..helper import (
     Total_Measurements,
     Counters,
     Counter,
+    get_counter_type,
 )
 
 from ..exceptions import (
@@ -266,11 +267,15 @@ class RestAPI(Adapter):
         if json_data.get("non_resettable"):
             for counter in json_data.get("non_resettable", []):
                 try:
+                    conunter_type = get_counter_type(
+                        counter.get("direction"), counter.get("unit")
+                    )
                     non_resettable.append(
                         Counter(
                             counter.get("value"),
                             counter.get("unit"),
                             counter.get("direction"),
+                            conunter_type,
                         )
                     )
                 except Exception as e:
@@ -283,11 +288,15 @@ class RestAPI(Adapter):
         if json_data.get("resettable"):
             for counter in json_data.get("resettable", []):
                 try:
+                    conunter_type = get_counter_type(
+                        counter.get("direction"), counter.get("unit")
+                    )
                     resettable.append(
                         Counter(
                             counter.get("value"),
                             counter.get("unit"),
                             counter.get("direction"),
+                            conunter_type,
                         )
                     )
                 except Exception as e:

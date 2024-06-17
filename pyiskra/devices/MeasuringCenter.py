@@ -15,6 +15,7 @@ from ..helper import (
     Counters,
     counter_units,
     get_counter_direction,
+    get_counter_type,
 )
 
 log = logging.getLogger(__name__)
@@ -340,6 +341,7 @@ class MeasuringCentre(Device):
                 direction = get_counter_direction(
                     resettable_settings.registers[1 + 10 * counter], reverse_connection
                 )
+                counter_type = get_counter_type(direction, units)
                 resettable.append(
                     Counter(
                         struct.unpack(
@@ -352,6 +354,7 @@ class MeasuringCentre(Device):
                         )[0],
                         units,
                         direction,
+                        counter_type,
                     )
                 )
 

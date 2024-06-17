@@ -1,4 +1,5 @@
 import time
+from enum import Enum
 
 
 class BasicInfo:
@@ -63,7 +64,7 @@ class Phase_Measurements:
 class Total_Measurements:
     active_power: Measurement
     reactive_power: Measurement
-    aparrent_power: Measurement
+    apparent_power: Measurement
     power_factor: Measurement
     power_angle: Measurement
 
@@ -71,13 +72,13 @@ class Total_Measurements:
         self,
         active_power=None,
         reactive_power=None,
-        apparrent_power=None,
+        apparent_power=None,
         power_factor=None,
         power_angle=None,
     ):
         self.active_power = active_power
         self.reactive_power = reactive_power
-        self.apparrent_power = apparrent_power
+        self.apparent_power = apparent_power
         self.power_factor = power_factor
         self.power_angle = power_angle
 
@@ -88,9 +89,7 @@ class Measurements:
     frequency: Measurement
     temperature: Measurement
 
-    def __init__(
-        self, phases=None, total=None, frequency=None, temperature=None
-    ):
+    def __init__(self, phases=None, total=None, frequency=None, temperature=None):
         self.timestamp = time.time()
 
         self.phases = phases
@@ -99,26 +98,38 @@ class Measurements:
         self.temperature = temperature
 
 
+class CounterType(Enum):
+    ACTIVE_IMPORT = "active_import"
+    ACTIVE_EXPORT = "active_export"
+    REACTIVE_IMPORT = "reactive_import"
+    REACTIVE_EXPORT = "reactive_export"
+    APPARENT_IMPORT = "apparent_import"
+    APPARENT_EXPORT = "apparent_export"
+    UNKNOWN = "unknown"
+
+
 class Counter:
     value: float
     units: str
     direction: str
+    counter_type: CounterType
 
     def __init__(
         self,
         value=None,
         units=None,
         direction=None,
+        counter_type=None,
     ):
         self.value = value
         self.units = units
         self.direction = direction
+        self.counter_type = counter_type
 
 
 class Counters:
     non_resettable: list[Counter]
     resettable: list[Counter]
-
 
     def __init__(self, non_resettable=None, resettable=None):
         self.timestamp = time.time()
@@ -146,3 +157,22 @@ def get_counter_direction(quadrants, reverse_connection):
             direction = "import"
 
     return direction
+
+
+def get_counter_type(direction, units):
+    if direction == "import":
+        if units == "Wh":
+            return CounterType.ACTIVE_IMPORT
+        elif units == "varh":
+            return CounterType.REACTIVE_IMPORT
+        elif units == "VAh":
+            return CounterType.APPARENT_IMPORT
+    elif direction == "export":
+        if units == "Wh":
+            return CounterType.ACTIVE_EXPORT
+        elif units == "varh":
+            return CounterType.REACTIVE_EXPORT
+        elif units == "VAh":
+            return CounterType.APPARENT_EXPORT
+
+    return CounterType.UNKNOWN

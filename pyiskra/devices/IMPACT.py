@@ -16,6 +16,7 @@ from ..helper import (
     Counters,
     counter_units,
     get_counter_direction,
+    get_counter_type,
 )
 
 log = logging.getLogger(__name__)
@@ -342,6 +343,7 @@ class Impact(Device):
                     non_resettable_settings.registers[1 + 4 * counter],
                     reverse_connection,
                 )
+                counter_type = get_counter_type(direction, units)
                 non_resettable.append(
                     Counter(
                         struct.unpack(
@@ -354,6 +356,7 @@ class Impact(Device):
                         )[0],
                         units,
                         direction,
+                        counter_type,
                     )
                 )
 
@@ -362,6 +365,7 @@ class Impact(Device):
                 direction = get_counter_direction(
                     resettable_settings.registers[1 + 4 * counter], reverse_connection
                 )
+                counter_type = get_counter_type(direction, units)
                 resettable.append(
                     Counter(
                         struct.unpack(
@@ -378,6 +382,7 @@ class Impact(Device):
                         )[0],
                         units,
                         direction,
+                        counter_type,
                     )
                 )
 
