@@ -68,6 +68,14 @@ class Device:
         ):
             return Impact(adapter)
 
+        from .WM import WM
+
+        if any(
+            re.match(model_pattern, model)
+            for model_pattern in WM.DEVICE_PARAMETERS.keys()
+        ):
+            return WM(adapter)
+
         from .MeasuringCenter import MeasuringCentre
 
         if any(
