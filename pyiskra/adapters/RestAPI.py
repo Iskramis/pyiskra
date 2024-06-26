@@ -1,7 +1,7 @@
 import aiohttp
 import base64
 import logging
-from aiohttp import ClientConnectionError, ClientTimeoutError
+from aiohttp import ClientConnectionError, ServerTimeoutError
 from .BaseAdapter import Adapter
 from ..helper import (
     BasicInfo,
@@ -73,7 +73,7 @@ class RestAPI(Adapter):
                     f"http://{self.ip_address}/{resource}", headers=headers
                 ) as response:
                     return await RestAPI.handle_response(response)
-        except ClientTimeoutError as e:
+        except ServerTimeoutError as e:
             raise DeviceTimeoutError(
                 f"Timeout occurred while connecting to the RestAPI: {e}"
             ) from e

@@ -91,10 +91,7 @@ class Modbus(Adapter):
         # Open the connection
         await self.open_connection()
         response = await self.read_input_registers(1, 14)
-        if response.isError():
-            raise InvalidResponseCode(
-                f"Invalid response code: {response.function_code}"
-            )
+
         basic_info["model"] = self.convert_registers_to_string(response.registers[0:8])
         basic_info["serial"] = self.convert_registers_to_string(
             response.registers[8:12]
@@ -102,10 +99,7 @@ class Modbus(Adapter):
         basic_info["sw_ver"] = response.registers[13] / 100
 
         response = await self.read_holding_registers(101, 43)
-        if response.isError():
-            raise InvalidResponseCode(
-                f"Invalid response code: {response.function_code}"
-            )
+
         # Close the connection
         self.close_connection()
         basic_info["description"] = self.convert_registers_to_string(
