@@ -53,10 +53,8 @@ class Device:
             ConnectionError: If failed to get basic info from the adapter.
             ValueError: If the device model is unsupported.
         """
-        try:
-            basic_info = await adapter.get_basic_info()
-        except Exception as e:
-            raise DeviceConnectionError(f"Failed to get basic info: {e}") from e
+
+        basic_info = await adapter.get_basic_info()
 
         model = basic_info.model
 

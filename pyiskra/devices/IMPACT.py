@@ -4,7 +4,6 @@ import asyncio
 import struct
 import re
 
-from pyiskra.exceptions import InvalidResponseCode
 from .BaseDevice import Device
 from ..adapters import RestAPI, Modbus
 from ..helper import (
@@ -410,7 +409,7 @@ class Impact(Device):
             # if the adapter is Modbus, open the connection
             if isinstance(self.adapter, Modbus):
                 await self.adapter.open_connection()
-
+                
             self.measurements = await self.get_measurements()
             self.counters = await self.get_counters()
 

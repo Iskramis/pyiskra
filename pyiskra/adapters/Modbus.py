@@ -59,20 +59,24 @@ class Modbus(Adapter):
             low_byte = register & 0xFF
             string += chr(high_byte) + chr(low_byte)
         return string.split("\0")[0].strip()
-    
-    def open_connection(self):
+
+    async def open_connection(self):
         """Connects to the device."""
         log.debug(f"Connecting to the device {self.ip_address}")
-        return self.client.connect()
+        await self.client.connect()
+        if not self.connected:
+            raise DeviceConnectionError(
+                f"Failed to connect to the device {self.ip_address}"
+            )
 
     def close_connection(self):
         """Closes the connection to the device."""
         log.debug(f"Closing the connection to the device {self.ip_address}")
         return self.client.close()
-    
+
     @property
     def connected(self) -> bool:
-        """Returns the connection status."""	
+        """Returns the connection status."""
         return self.client.connected
 
     async def get_basic_info(self):
@@ -85,7 +89,7 @@ class Modbus(Adapter):
         basic_info = {}
 
         # Open the connection
-        await self.open_connection()   
+        await self.open_connection()
         response = await self.read_input_registers(1, 14)
         if response.isError():
             raise InvalidResponseCode(
@@ -127,18 +131,16 @@ class Modbus(Adapter):
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
-
-        response = await self.client.read_holding_registers(
-            start, count, slave=self.modbus_address
-        )
-        if response.isError():
-            raise InvalidResponseCode(
-                f"Invalid response code: {response.function_code}"
+        try:
+            response = await self.client.read_holding_registers(
+                start, count, slave=self.modbus_address
             )
-        
+        except Exception as e:
+            raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
+
         if handle_connection:
             self.close_connection()
-        
+
         return response
 
     async def read_input_registers(self, start, count):
@@ -155,15 +157,14 @@ class Modbus(Adapter):
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
-        response = await self.client.read_input_registers(
-            start, count, slave=self.modbus_address
-        )
-        if response.isError():
-            raise InvalidResponseCode(
-                f"Invalid response code: {response.function_code}"
+        try:
+            response = await self.client.read_input_registers(
+                start, count, slave=self.modbus_address
             )
-        
+        except Exception as e:
+            raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
+
         if handle_connection:
-            self.close_connection()        
+            self.close_connection()
 
         return response

@@ -13,5 +13,9 @@ class DeviceConnectionError(Exception):
     pass
 
 
+class DeviceTimeoutError(Exception):
+    pass
+
+
 class InvalidResponseCode(Exception):
     pass

@@ -1,7 +1,7 @@
 import aiohttp
 import base64
 import logging
-from aiohttp import ClientConnectionError
+from aiohttp import ClientConnectionError, ClientTimeoutError
 from .BaseAdapter import Adapter
 from ..helper import (
     BasicInfo,
@@ -19,6 +19,7 @@ from ..exceptions import (
     DeviceNotSupported,
     InvalidResponseCode,
     DeviceConnectionError,
+    DeviceTimeoutError,
 )
 
 log = logging.getLogger(__name__)
@@ -63,16 +64,34 @@ class RestAPI(Adapter):
                         authentication["username"] + ":" + authentication["password"]
                     ).encode("utf-8")
                 ).decode("utf-8")
+
+        # Set a timeout for the REST API call
         try:
-            timeout = aiohttp.ClientTimeout(total=5)
+            timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(
                     f"http://{self.ip_address}/{resource}", headers=headers
                 ) as response:
                     return await RestAPI.handle_response(response)
+        except ClientTimeoutError as e:
+            raise DeviceTimeoutError(
+                f"Timeout occurred while connecting to the RestAPI: {e}"
+            ) from e
+        except ClientConnectionError as e:
+            raise DeviceConnectionError(
+                f"Error occurred while connecting to the RestAPI: {e}"
+            ) from e
+        except NotAuthorised as e:
+            raise NotAuthorised(f"Not authorised to access the device: {e}") from e
+        except DeviceNotSupported as e:
+            raise DeviceNotSupported(f"Device not supported by RestAPI: {e}") from e
+        except InvalidResponseCode:
+            raise DeviceConnectionError(
+                f"Invalid response code while connecting to the RestAPI"
+            )
         except Exception as e:
             raise DeviceConnectionError(
-                f"Error occurred while making REST API call: {e}"
+                f"Error occurred while connecting to the RestAPI: {e}"
             ) from e
 
     @staticmethod
@@ -133,14 +152,9 @@ class RestAPI(Adapter):
         """
         json_data = None
         if self.device_index is not None and self.device_index >= 0:
-            try:
-                json_data = await self.get_resource(
-                    "api/measurement/" + str(self.device_index)
-                )
-            except ClientConnectionError as e:
-                raise DeviceConnectionError(
-                    f"Error occurred while connecting to the RestAPI: {e}"
-                ) from e
+            json_data = await self.get_resource(
+                "api/measurement/" + str(self.device_index)
+            )
             json_data = json_data.get("measurements", {})
             phases = []
             total = None
@@ -256,12 +270,9 @@ class RestAPI(Adapter):
             ConnectionError: If an error occurs while connecting to the RestAPI.
         """
         json_data = None
-        try:
-            json_data = await self.get_resource("api/counter/" + str(self.device_index))
-        except ClientConnectionError as e:
-            raise DeviceConnectionError(
-                f"Error occurred while connecting to the RestAPI: {e}"
-            ) from e
+
+        json_data = await self.get_resource("api/counter/" + str(self.device_index))
+
         json_data = json_data.get("counters", {})
         non_resettable = []
         resettable = []
@@ -331,15 +342,8 @@ class RestAPI(Adapter):
             ]
             json_data = child_devices[self.device_index]
         else:
-            try:
-                json_data = (await self.get_resource("api")).get("device", {})
-            except NotAuthorised as e:
-                raise NotAuthorised(f"Not authorised to access the device: {e}") from e
-            except Exception as e:
-                raise DeviceConnectionError(
-                    f"Failed to connect to the device: {e}"
-                ) from e
 
+            json_data = (await self.get_resource("api")).get("device", {})
             # fix syntax to be consistent with other devices
             json_data["model"] = json_data["model_type"].strip()
             json_data["serial"] = json_data["serial_number"].strip()
