@@ -16,7 +16,7 @@ from ..helper import (
 
 from ..exceptions import (
     NotAuthorised,
-    DeviceNotSupported,
+    ProtocolNotSupported,
     InvalidResponseCode,
     DeviceConnectionError,
     DeviceTimeoutError,
@@ -83,8 +83,8 @@ class RestAPI(Adapter):
             ) from e
         except NotAuthorised as e:
             raise NotAuthorised(f"Not authorised to access the device: {e}") from e
-        except DeviceNotSupported as e:
-            raise DeviceNotSupported(f"Device not supported by RestAPI: {e}") from e
+        except ProtocolNotSupported as e:
+            raise ProtocolNotSupported(f"{e}") from e
         except InvalidResponseCode:
             raise DeviceConnectionError(
                 f"Invalid response code while connecting to the RestAPI"
@@ -113,7 +113,7 @@ class RestAPI(Adapter):
         elif response.status == 403:
             raise NotAuthorised("Not authorised")
         elif response.status == 404:
-            raise DeviceNotSupported("Device not supported by RestAPI")
+            raise ProtocolNotSupported("Device not supported by RestAPI")
         else:
             raise InvalidResponseCode("Invalid response code")
 

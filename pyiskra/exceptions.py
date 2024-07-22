@@ -9,6 +9,10 @@ class DeviceNotSupported(Exception):
     pass
 
 
+class ProtocolNotSupported(Exception):
+    pass
+
+
 class DeviceConnectionError(Exception):
     pass
 

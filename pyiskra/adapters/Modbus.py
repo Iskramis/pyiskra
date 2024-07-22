@@ -33,6 +33,7 @@ class Modbus(Adapter):
         """
         self.modbus_address = modbus_address
         self.ip_address = ip_address
+        self.port = port
         if protocol == "tcp":
             self.protocol = "tcp"
             self.client = AsyncModbusTcpClient(host=ip_address, port=port, timeout=1)
@@ -63,16 +64,36 @@ class Modbus(Adapter):
     async def open_connection(self):
         """Connects to the device."""
         log.debug(f"Connecting to the device {self.ip_address}")
+        if not self.client:
+            raise DeviceConnectionError("The connection is not configured")
+
         await self.client.connect()
         if not self.connected:
-            raise DeviceConnectionError(
-                f"Failed to connect to the device {self.ip_address}"
-            )
+            if self.protocol == "tcp":
+                raise DeviceConnectionError(
+                    f"Failed to connect to the device {self.ip_address} on port {self.port}"
+                )
+            elif self.protocol == "rtu":
+                raise DeviceConnectionError(
+                    f"Failed to connect to the device on port {self.port}"
+                )
 
-    def close_connection(self):
+    async def close_connection(self):
         """Closes the connection to the device."""
         log.debug(f"Closing the connection to the device {self.ip_address}")
-        return self.client.close()
+        if not self.client:
+            raise DeviceConnectionError("The connection is not configured")
+
+        self.client.close()
+        if self.connected:
+            if self.protocol == "tcp":
+                raise DeviceConnectionError(
+                    f"Failed to close the connection to the device {self.ip_address} on port {self.port}"
+                )
+            elif self.protocol == "rtu":
+                raise DeviceConnectionError(
+                    f"Failed to close the connection to the device on port {self.port}"
+                )
 
     @property
     def connected(self) -> bool:
@@ -90,18 +111,24 @@ class Modbus(Adapter):
 
         # Open the connection
         await self.open_connection()
-        response = await self.read_input_registers(1, 14)
+        try:
+            response = await self.read_input_registers(1, 14)
 
-        basic_info["model"] = self.convert_registers_to_string(response.registers[0:8])
-        basic_info["serial"] = self.convert_registers_to_string(
-            response.registers[8:12]
-        )
-        basic_info["sw_ver"] = response.registers[13] / 100
+            basic_info["model"] = self.convert_registers_to_string(
+                response.registers[0:8]
+            )
+            basic_info["serial"] = self.convert_registers_to_string(
+                response.registers[8:12]
+            )
+            basic_info["sw_ver"] = response.registers[12] / 100
 
-        response = await self.read_holding_registers(101, 43)
+            response = await self.read_holding_registers(101, 43)
+        except Exception as e:
+            await self.close_connection()
+            raise DeviceConnectionError(f"Failed to read basic info: {e}") from e
 
         # Close the connection
-        self.close_connection()
+        await self.close_connection()
         basic_info["description"] = self.convert_registers_to_string(
             response.registers[0:20]
         )
@@ -133,7 +160,7 @@ class Modbus(Adapter):
             raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
 
         if handle_connection:
-            self.close_connection()
+            await self.close_connection()
 
         return response
 
@@ -159,6 +186,6 @@ class Modbus(Adapter):
             raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
 
         if handle_connection:
-            self.close_connection()
+            await self.close_connection()
 
         return response

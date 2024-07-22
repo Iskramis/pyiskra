@@ -1,7 +1,7 @@
 import asyncio
 import socket
 import re
-from ..exceptions import DeviceConnectionError, DeviceNotSupported
+from ..exceptions import DeviceConnectionError, DeviceNotSupported, ProtocolNotSupported
 from ..adapters import RestAPI
 
 
@@ -92,7 +92,7 @@ class Device:
                 return SmartGateway(adapter)
             else:
                 # only REST API is supported for SmartGateway
-                raise DeviceNotSupported(f"Unsupported device model: {model}")
+                raise ProtocolNotSupported(f"Unsupported device model: {model}")
 
         raise DeviceNotSupported(f"Unsupported device model: {model}")
 
