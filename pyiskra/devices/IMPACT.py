@@ -328,7 +328,7 @@ class Impact(Device):
             resettable_settings = await self.adapter.read_holding_registers(437, 64)
 
             if handle_connection:
-                self.adapter.close_connection()
+                await self.adapter.close_connection()
 
             non_resettable = []
             resettable = []
@@ -409,12 +409,12 @@ class Impact(Device):
             # if the adapter is Modbus, open the connection
             if isinstance(self.adapter, Modbus):
                 await self.adapter.open_connection()
-                
+
             self.measurements = await self.get_measurements()
             self.counters = await self.get_counters()
 
             # if the adapter is Modbus, close the connection
             if isinstance(self.adapter, Modbus):
-                self.adapter.close_connection()
+                await self.adapter.close_connection()
 
             self.update_timestamp = time.time()

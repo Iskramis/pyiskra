@@ -328,7 +328,7 @@ class MeasuringCentre(Device):
 
             # Close the connection
             if handle_connection:
-                self.adapter.close_connection()
+                await self.adapter.close_connection()
 
             non_resettable = []
             resettable = []
@@ -388,6 +388,6 @@ class MeasuringCentre(Device):
 
             # if the adapter is Modbus, close the connection
             if isinstance(self.adapter, Modbus):
-                self.adapter.close_connection()
+                await self.adapter.close_connection()
 
             self.update_timestamp = time.time()
