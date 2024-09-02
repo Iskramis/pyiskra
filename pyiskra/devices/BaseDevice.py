@@ -35,11 +35,12 @@ class Device:
     non_resettable_counters = 0
     resettable_counters = 0
     fw_version = None
+    parent_device = None
 
     update_timestamp = 0
 
     @staticmethod
-    async def create_device(adapter):
+    async def create_device(adapter, parent_device=None):
         """
         Creates a device based on the adapter.
 
@@ -64,7 +65,7 @@ class Device:
             re.match(model_pattern, model)
             for model_pattern in Impact.DEVICE_PARAMETERS.keys()
         ):
-            return Impact(adapter)
+            return Impact(adapter, parent_device)
 
         from .WM import WM
 
@@ -72,7 +73,7 @@ class Device:
             re.match(model_pattern, model)
             for model_pattern in WM.DEVICE_PARAMETERS.keys()
         ):
-            return WM(adapter)
+            return WM(adapter, parent_device)
 
         from .MeasuringCenter import MeasuringCentre
 
@@ -80,7 +81,7 @@ class Device:
             re.match(model_pattern, model)
             for model_pattern in MeasuringCentre.DEVICE_PARAMETERS.keys()
         ):
-            return MeasuringCentre(adapter)
+            return MeasuringCentre(adapter, parent_device)
 
         from .SmartGateway import SmartGateway
 
@@ -89,14 +90,14 @@ class Device:
             for model_pattern in SmartGateway.DEVICE_PARAMETERS.keys()
         ):
             if isinstance(adapter, RestAPI):
-                return SmartGateway(adapter)
+                return SmartGateway(adapter, parent_device)
             else:
                 # only REST API is supported for SmartGateway
                 raise ProtocolNotSupported(f"Unsupported device model: {model}")
 
         raise DeviceNotSupported(f"Unsupported device model: {model}")
 
-    def __init__(self, adapter):
+    def __init__(self, adapter, parent_device=None):
         """
         Initializes the Iskra Device.
 
@@ -105,6 +106,8 @@ class Device:
         """
         self.adapter = adapter
         self.update_lock = asyncio.Lock()
+        print(parent_device)
+        self.parent_device = parent_device
 
     async def get_basic_info(self):
         """

@@ -66,7 +66,7 @@ class SmartGateway(Device):
                     device_index=i,
                 )
                 try:
-                    dev = await Device.create_device(adapter)
+                    dev = await Device.create_device(adapter, self)
                     await dev.init()
                     self.child_devices.append(dev)
                 except DeviceNotSupported as e:
