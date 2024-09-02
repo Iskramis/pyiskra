@@ -67,7 +67,7 @@ class Discovery:
 
     async def broadcast_udp_packet(self, ip_address):
         try:
-            log.info(f"Sending Broadcast to {ip_address}")
+            log.debug(f"Sending Broadcast to {ip_address}")
             await self.loop.sock_sendto(
                 self.sock, DISCOVERY_MSG, (ip_address, UDP_DST_PORT)
             )
@@ -110,7 +110,7 @@ class Discovery:
                         self.loop.sock_recvfrom(self.sock, RCV_BUFSIZ), timeout=1.0
                     )
                     device = DiscoveredDevice(addr[0], addr[1], data)
-                    log.info(
+                    log.debug(
                         f"Found device {device.model} {device.serial} {device.ip_address}"
                     )
                     new_mac = device.mac

@@ -48,7 +48,7 @@ class Impact(Device):
         """
         await self.get_basic_info()
         await self.update_status()
-        log.info(f"Successfully initialized {self.model} {self.serial}")
+        log.debug(f"Successfully initialized {self.model} {self.serial}")
 
     async def get_measurements(self):
         """
@@ -58,12 +58,14 @@ class Impact(Device):
             dict: A dictionary containing the measurements.
         """
         if isinstance(self.adapter, RestAPI):
-            log.info(
+            log.debug(
                 f"Getting measurements from Rest API for {self.model} {self.serial}"
             )
             return await self.adapter.get_measurements()
         elif isinstance(self.adapter, Modbus):
-            log.info(f"Getting measurements from Modbus for {self.model} {self.serial}")
+            log.debug(
+                f"Getting measurements from Modbus for {self.model} {self.serial}"
+            )
             response = await self.adapter.read_input_registers(2500, 106)
 
             phases = []
@@ -310,7 +312,7 @@ class Impact(Device):
             dict: A dictionary containing the counters.
         """
         if isinstance(self.adapter, RestAPI):
-            log.info(f"Getting counters from Rest API for {self.model} {self.serial}")
+            log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
             return await self.adapter.get_counters()
         elif isinstance(self.adapter, Modbus):
             # Open the connection
@@ -318,7 +320,7 @@ class Impact(Device):
             if handle_connection:
                 await self.adapter.open_connection()
 
-            log.info(f"Getting counters from Modbus for {self.model} {self.serial}")
+            log.debug(f"Getting counters from Modbus for {self.model} {self.serial}")
             response = await self.adapter.read_input_registers(2750, 96)
 
             direction_settings = await self.adapter.read_holding_registers(151, 1)
@@ -404,7 +406,7 @@ class Impact(Device):
 
         # If update is not running, acquire the lock and update
         async with self.update_lock:
-            log.info("Updating status for %s %s" % (self.model, self.serial))
+            log.debug("Updating status for %s %s" % (self.model, self.serial))
 
             # if the adapter is Modbus, open the connection
             if isinstance(self.adapter, Modbus):

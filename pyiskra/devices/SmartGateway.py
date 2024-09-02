@@ -46,7 +46,7 @@ class SmartGateway(Device):
         self.location = basic_info.location
         self.fw_version = basic_info.sw_ver
         await self.update_child_devices()
-        log.info(f"Successfully initialized {self.model} {self.serial}")
+        log.debug(f"Successfully initialized {self.model} {self.serial}")
 
     async def update_child_devices(self):
         self.child_devices = []
@@ -57,7 +57,7 @@ class SmartGateway(Device):
         ]
         for i, device in enumerate(child_devices):
             if device["model"] != "Disabled" and device["model"] != "Not Detected":
-                log.info(
+                log.debug(
                     f"Found device {device['model']} {device['serial']} connected to {self.model} {self.serial}"
                 )
                 adapter = RestAPI(
@@ -109,5 +109,5 @@ class SmartGateway(Device):
         """
         Updates the status of the smart gateway.
         """
-        log.info(f"Updating status for {self.model} {self.serial}")
+        log.debug(f"Updating status for {self.model} {self.serial}")
         # await self.update_child_devices()
