@@ -106,7 +106,6 @@ class Device:
         """
         self.adapter = adapter
         self.update_lock = asyncio.Lock()
-        print(parent_device)
         self.parent_device = parent_device
 
     async def get_basic_info(self):
