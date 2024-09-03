@@ -58,11 +58,11 @@ class RestAPI(Adapter):
         if self.authentication:
             authentication = self.authentication
 
-            if authentication["password"] and authentication["username"]:
+            if (password := authentication.get("password")) and (
+                username := authentication.get("username")
+            ):
                 headers["cookie"] = "Authorization=Basic " + base64.b64encode(
-                    (
-                        authentication["username"] + ":" + authentication["password"]
-                    ).encode("utf-8")
+                    (username + ":" + password).encode("utf-8")
                 ).decode("utf-8")
 
         # Set a timeout for the REST API call
