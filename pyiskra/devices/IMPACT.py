@@ -32,7 +32,7 @@ class Impact(Device):
     """
 
     DEVICE_PARAMETERS = {
-        "IE38": {"phases": 3, "resettable_counters": 8, "non_resettable_counters": 4},
+        "IE38": {"phases": 3, "resettable_counters": 16, "non_resettable_counters": 4},
         "IE14": {"phases": 1, "resettable_counters": 8, "non_resettable_counters": 4},
         # Add more models as needed
     }
