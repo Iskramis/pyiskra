@@ -1,3 +1,4 @@
+import struct
 import time
 from enum import Enum
 
@@ -176,3 +177,68 @@ def get_counter_type(direction, units):
             return CounterType.APPARENT_EXPORT
 
     return CounterType.UNKNOWN
+
+
+class ModbusMapper:
+    def __init__(self, register_values, start_address):
+        self.register_values = register_values
+        self.start_address = start_address
+
+    def get_value(self, desired_address):
+        if (
+            desired_address < self.start_address
+            or desired_address >= self.start_address + len(self.register_values)
+        ):
+            raise Exception("desired address out of range")
+
+        index = desired_address - self.start_address
+        return self.register_values[index]
+
+    def get_uint16(self, desired_address):
+        value = self.get_value(desired_address)
+        return value
+
+    def get_int16(self, desired_address):
+        value = self.get_value(desired_address)
+        if value is None:
+            return None
+        if value > 32767:
+            value -= 65536
+        return value
+
+    def get_float(self, desired_address, word_swap=True):
+        value = self.get_value(desired_address)
+        next_value = self.get_value(desired_address + 1)
+        if value is None or next_value is None:
+            return None
+        # Combine the two 16-bit register values into a 32-bit integer
+        combined = (next_value << 16) | value
+        if word_swap:
+            combined = (value << 16) | next_value
+        # Convert the 32-bit integer to a float
+        return round(struct.unpack("!f", struct.pack("!I", combined))[0], 3)
+
+    def get_uint32(self, desired_address, word_swap=True):
+        high_word = self.get_value(desired_address)
+        low_word = self.get_value(desired_address + 1)
+        if word_swap:
+            return (low_word << 16) + high_word
+        return (high_word << 16) + low_word
+
+    def get_string(self, desired_address):
+        value = self.get_value(desired_address)
+        high_byte = (value >> 8) & 0xFF
+        low_byte = value & 0xFF
+        return "".join([chr(high_byte), chr(low_byte)])
+
+    def get_string_range(self, desired_address, size):
+        return "".join(
+            [
+                self.get_string(register)
+                for register in range(desired_address, desired_address + size)
+            ]
+        )
+
+    def dump(self):
+        for i, value in enumerate(self.register_values):
+            print(f"Address {self.start_address + i}: {value} 0x{value:04X}")

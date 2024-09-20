@@ -3,7 +3,7 @@ from pymodbus.client import AsyncModbusTcpClient
 from pymodbus.client import AsyncModbusSerialClient
 
 from .BaseAdapter import Adapter
-from ..helper import BasicInfo
+from ..helper import BasicInfo, ModbusMapper
 from ..exceptions import InvalidResponseCode, DeviceConnectionError
 
 log = logging.getLogger(__name__)
@@ -112,30 +112,24 @@ class Modbus(Adapter):
         # Open the connection
         await self.open_connection()
         try:
-            response = await self.read_input_registers(1, 14)
+            data = await self.read_input_registers(1, 14)
+            mapper = ModbusMapper(data, 1)
 
-            basic_info["model"] = self.convert_registers_to_string(
-                response.registers[0:8]
-            )
-            basic_info["serial"] = self.convert_registers_to_string(
-                response.registers[8:12]
-            )
-            basic_info["sw_ver"] = response.registers[12] / 100
+            basic_info["model"] = mapper.get_string_range(1, 8)
+            basic_info["serial"] = mapper.get_string_range(9, 4)
+            basic_info["sw_ver"] = mapper.get_uint16(13) / 100
 
-            response = await self.read_holding_registers(101, 43)
+            data = await self.read_holding_registers(101, 40)
+            mapper = ModbusMapper(data, 101)
         except Exception as e:
             await self.close_connection()
             raise DeviceConnectionError(f"Failed to read basic info: {e}") from e
 
         # Close the connection
         await self.close_connection()
-        basic_info["description"] = self.convert_registers_to_string(
-            response.registers[0:20]
-        )
-        basic_info["location"] = self.convert_registers_to_string(
-            response.registers[20:40]
-        )
-
+        basic_info["description"] = mapper.get_string_range(101, 20)
+        basic_info["location"] = mapper.get_string_range(121, 20)
+        print(basic_info)
         return BasicInfo(**basic_info)
 
     async def read_holding_registers(self, start, count):
@@ -162,7 +156,7 @@ class Modbus(Adapter):
         if handle_connection:
             await self.close_connection()
 
-        return response
+        return response.registers
 
     async def read_input_registers(self, start, count):
         """
@@ -188,4 +182,4 @@ class Modbus(Adapter):
         if handle_connection:
             await self.close_connection()
 
-        return response
+        return response.registers
