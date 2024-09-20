@@ -1,7 +1,7 @@
 from pyiskra.discovery import Discovery
 from pyiskra.devices.BaseDevice import Device
 from pyiskra.adapters import RestAPI, Modbus
-from pyiskra.exceptions import DeviceConnectionError
+from pyiskra.exceptions import DeviceConnectionError, ProtocolNotSupported
 
 
 import asyncio
@@ -29,7 +29,7 @@ async def main():
             iskra_device = await Device.create_device(
                 RestAPI(ip_address=device.ip_address, authentication=authentication)
             )
-        except DeviceConnectionError as e:
+        except (DeviceConnectionError, ProtocolNotSupported) as e:
             try:
                 iskra_device = await Device.create_device(
                     Modbus(
