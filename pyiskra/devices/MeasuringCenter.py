@@ -82,7 +82,6 @@ class MeasuringCentre(Device):
                     mapper.get_float(2500 + 2 * phase),
                     "V",
                 )
-                print(2500 + phase, voltage.value)
                 current = Measurement(
                     mapper.get_float(2516 + 2 * phase),
                     "A",

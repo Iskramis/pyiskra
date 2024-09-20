@@ -129,7 +129,6 @@ class Modbus(Adapter):
         await self.close_connection()
         basic_info["description"] = mapper.get_string_range(101, 20)
         basic_info["location"] = mapper.get_string_range(121, 20)
-        print(basic_info)
         return BasicInfo(**basic_info)
 
     async def read_holding_registers(self, start, count):
