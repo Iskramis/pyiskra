@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="pyiskra",
-    version="0.1.11",
+    version="0.1.12",
     description="Python Iskra devices interface",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,5 +26,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Home Automation",
     ],
-    install_requires=["netifaces", "aiohttp", "pymodbus"],
+    install_requires=["aiohttp", "pymodbus", "psutil", "ipaddress"],
 )

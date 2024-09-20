@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [tool.poetry]
 name = "pyiskra"
-version = "0.1.11"
+version = "0.1.12"
 description = "Python Iskra devices interface"
 authors = ["Iskra d.o.o. <razvoj.mis@iskra.eu>"]
 license = "GPL"
@@ -22,8 +22,9 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-netifaces = "*"
 aiohttp = "*"
 pymodbus = "*"
+psutil = "*"
+ipaddress = "*"
 
 [tool.poetry.dev-dependencies]

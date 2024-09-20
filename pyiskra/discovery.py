@@ -1,8 +1,8 @@
 import asyncio
 import socket
-import netifaces
+import psutil
 import logging
-import socket
+import ipaddress
 
 log = logging.getLogger(__name__)
 
@@ -78,25 +78,29 @@ class Discovery:
     async def poll(self, stop_if_found=None, ip=None):
         try:
             if ip:
-                broadcast_ips = [ip]
+                broadcast_addresses = [ip]
             else:
-                broadcast_ips = []
-                # Get all network interfaces
-                interfaces = netifaces.interfaces()
-
-                # Get the broadcast addresses for each interface
-                broadcast_ips = []
-                for interface in interfaces:
-                    addresses = netifaces.ifaddresses(interface)
-                    if netifaces.AF_INET in addresses:
-                        ipv4_addresses = addresses[netifaces.AF_INET]
-                        for address in ipv4_addresses:
-                            if "broadcast" in address:
-                                broadcast_ips.append(address["broadcast"])
+                broadcast_addresses = []
+                for interface, addrs in psutil.net_if_addrs().items():
+                    for addr in addrs:
+                        if addr.family == socket.AF_INET:
+                            network = ipaddress.IPv4Network(
+                                f"{addr.address}/{addr.netmask}", strict=False
+                            )
+                            # remove local-link and loopback
+                            if not addr.address.startswith(
+                                "169.254"
+                            ) and not addr.address.startswith("127."):
+                                broadcast_addresses.append(
+                                    str(network.broadcast_address)
+                                )
 
             # Broadcast UDP packets to all IPs concurrently
             await asyncio.gather(
-                *[self.broadcast_udp_packet(ip_address) for ip_address in broadcast_ips]
+                *[
+                    self.broadcast_udp_packet(ip_address)
+                    for ip_address in broadcast_addresses
+                ]
             )
 
             start_time = self.loop.time()
@@ -110,7 +114,7 @@ class Discovery:
                         self.loop.sock_recvfrom(self.sock, RCV_BUFSIZ), timeout=1.0
                     )
                     device = DiscoveredDevice(addr[0], addr[1], data)
-                    log.debug(
+                    log.info(
                         f"Found device {device.model} {device.serial} {device.ip_address}"
                     )
                     new_mac = device.mac
