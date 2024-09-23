@@ -7,6 +7,7 @@ from pyiskra.exceptions import InvalidResponseCode
 from .BaseDevice import Device
 from ..adapters import RestAPI, Modbus
 from ..helper import (
+    ModbusMapper,
     Measurements,
     Measurement,
     Phase_Measurements,
@@ -64,135 +65,48 @@ class WM(Device):
             )
             return await self.adapter.get_measurements()
         elif isinstance(self.adapter, Modbus):
-            log.debug(f"Getting measurements from Modbus for {self.model} {self.serial}")
-            response = await self.adapter.read_input_registers(2500, 106)
+            log.debug(
+                f"Getting measurements from Modbus for {self.model} {self.serial}"
+            )
+            data = await self.adapter.read_input_registers(105, 85)
+            mapper = ModbusMapper(data, 105)
 
             phases = []
             for phase in range(self.phases):
                 voltage = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase],
-                                response.registers[2 * phase + 1],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t5(107 + 2 * phase),
                     "V",
                 )
                 current = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 16],
-                                response.registers[2 * phase + 17],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t5(126 + 2 * phase),
                     "A",
                 )
                 active_power = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 30],
-                                response.registers[2 * phase + 31],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t6(142 + 2 * phase),
                     "W",
                 )
                 reactive_power = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 38],
-                                response.registers[2 * phase + 39],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t6(150 + 2 * phase),
                     "var",
                 )
                 apparent_power = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 46],
-                                response.registers[2 * phase + 47],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t5(158 + 2 * phase),
                     "VA",
                 )
                 power_factor = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 54],
-                                response.registers[2 * phase + 55],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_t7(166 + 2 * phase)["value"],
                     "",
                 )
                 power_angle = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 70],
-                                response.registers[2 * phase + 71],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_int16(173 + phase) / 100,
                     "°",
                 )
                 thd_current = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 88],
-                                response.registers[2 * phase + 81],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_uint16(182 + phase) / 100,
                     "%",
                 )
                 thd_voltage = Measurement(
-                    round(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * phase + 96],
-                                response.registers[2 * phase + 97],
-                            ),
-                        )[0],
-                        3,
-                    ),
+                    mapper.get_uint16(182 + phase) / 100,
                     "%",
                 )
                 phases.append(
@@ -210,87 +124,31 @@ class WM(Device):
                 )
 
             active_power_total = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[36], response.registers[37]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_t6(140),
                 "W",
             )
             reactive_power_total = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[44], response.registers[45]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_t6(148),
                 "VAR",
             )
             apparent_power_total = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[52], response.registers[53]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_t5(156),
                 "VA",
             )
             power_factor_total = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[60], response.registers[61]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_t7(164),
                 "",
             )
             power_angle_total = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[76], response.registers[77]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_int16(172) / 100,
                 "°",
             )
             frequency = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[84], response.registers[85]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_t5(105),
                 "Hz",
             )
             temperature = Measurement(
-                round(
-                    struct.unpack(
-                        ">f",
-                        struct.pack(
-                            ">HH", response.registers[92], response.registers[93]
-                        ),
-                    )[0],
-                    3,
-                ),
+                mapper.get_int16(181) / 100,
                 "°C",
             )
             total = Total_Measurements(
@@ -314,16 +172,20 @@ class WM(Device):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
             return await self.adapter.get_counters()
         elif isinstance(self.adapter, Modbus):
-            log.debug(f"Getting measurements from Modbus for {self.model} {self.serial}")
+            log.debug(
+                f"Getting measurements from Modbus for {self.model} {self.serial}"
+            )
 
             # Open the connection
             handle_connection = not self.adapter.connected
             if handle_connection:
                 await self.adapter.open_connection()
 
-            response = await self.adapter.read_input_registers(2638, 16)
+            data = await self.adapter.read_input_registers(400, 64)
+            data_mapper = ModbusMapper(data, 400)
             direction_settings = await self.adapter.read_holding_registers(151, 1)
-            resettable_settings = await self.adapter.read_holding_registers(421, 36)
+            counter_settings = await self.adapter.read_holding_registers(421, 36)
+            counter_settings_mapper = ModbusMapper(counter_settings, 421)
 
             # Close the connection
             if handle_connection:
@@ -332,25 +194,52 @@ class WM(Device):
             non_resettable = []
             resettable = []
             reverse_connection = False
-            if direction_settings.registers[0] & 2:
+            if direction_settings[0] & 2:
                 reverse_connection = True
 
             for counter in range(self.resettable_counters):
-                units = counter_units[resettable_settings.registers[10 * counter]]
+                units = counter_units[
+                    counter_settings_mapper.get_uint16(421 + 10 * counter) & 0x3
+                ]
                 direction = get_counter_direction(
-                    resettable_settings.registers[1 + 10 * counter], reverse_connection
+                    counter_settings_mapper.get_uint16(422 + 10 * counter),
+                    reverse_connection,
                 )
                 counter_type = get_counter_type(direction, units)
+                value = data_mapper.get_int32(406 + 2 * counter)
+                exponent = data_mapper.get_int16(401 + counter)
                 resettable.append(
                     Counter(
-                        struct.unpack(
-                            ">f",
-                            struct.pack(
-                                ">HH",
-                                response.registers[2 * (counter)],
-                                response.registers[1 + 2 * (counter)],
-                            ),
-                        )[0],
+                        value * (10**exponent),
+                        units,
+                        direction,
+                        counter_type,
+                    )
+                )
+
+            for counter in range(self.non_resettable_counters):
+                units = counter_units[
+                    counter_settings_mapper.get_uint16(
+                        421 + 10 * (counter + self.resettable_counters)
+                    )
+                    & 0x3
+                ]
+                direction = get_counter_direction(
+                    counter_settings_mapper.get_uint16(
+                        422 + 10 * (counter + self.resettable_counters)
+                    ),
+                    reverse_connection,
+                )
+                counter_type = get_counter_type(direction, units)
+                value = data_mapper.get_int32(
+                    406 + 2 * (counter + self.resettable_counters)
+                )
+                exponent = data_mapper.get_int16(
+                    401 + (counter + self.resettable_counters)
+                )
+                non_resettable.append(
+                    Counter(
+                        value * (10**exponent),
                         units,
                         direction,
                         counter_type,

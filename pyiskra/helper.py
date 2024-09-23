@@ -194,6 +194,57 @@ class ModbusMapper:
         index = desired_address - self.start_address
         return self.register_values[index]
 
+    def get_t5(self, desired_address, word_swap=False):
+        high_word = self.get_value(desired_address)
+        low_word = self.get_value(desired_address + 1)
+
+        combined = (high_word << 16) | low_word
+        if word_swap:
+            combined = (low_word << 16) | high_word
+        value = combined & 0xFFFFFF  # bits 0-23
+        exponent = (combined >> 24) & 0xFF  # bits 24-31
+        if exponent & 0x80:  # if the sign bit is set
+            exponent -= 0x100  # convert to signed
+        return round(value * (10**exponent), 3)
+
+    def get_t6(self, desired_address, word_swap=False):
+        high_word = self.get_value(desired_address)
+        low_word = self.get_value(desired_address + 1)
+
+        combined = (high_word << 16) | low_word
+        if word_swap:
+            combined = (low_word << 16) | high_word
+        value = combined & 0xFFFFFF  # bits 0-23
+        exponent = (combined >> 24) & 0xFF  # bits 24-31
+        if exponent & 0x80:  # if the sign bit is set
+            exponent -= 0x100  # convert to signed
+        if value & 0x800000:  # if the sign bit is set
+            value -= 0x1000000  # convert to signed
+        return round(value * (10**exponent), 3)
+
+    def get_t7(self, desired_address, word_swap=False):
+        high_word = self.get_value(desired_address)
+        low_word = self.get_value(desired_address + 1)
+
+        combined = (high_word << 16) | low_word
+        if word_swap:
+            combined = (low_word << 16) | high_word
+
+        value = combined & 0xFFFF  # bits 0-15
+        inductive_capacitive = (combined >> 16) & 0xFF  # bits 16-23
+        import_export = (combined >> 24) & 0xFF  # bits 24-31
+
+        inductive_capacitive_str = (
+            "inductive" if inductive_capacitive == 0x00 else "capacitive"
+        )
+        import_export_str = "import" if import_export == 0x00 else "export"
+
+        return {
+            "value": value / 10000,
+            "inductive_capacitive": inductive_capacitive_str,
+            "import_export": import_export_str,
+        }
+
     def get_uint16(self, desired_address):
         value = self.get_value(desired_address)
         return value
@@ -206,24 +257,36 @@ class ModbusMapper:
             value -= 65536
         return value
 
-    def get_float(self, desired_address, word_swap=True):
+    def get_float(self, desired_address, word_swap=False):
         value = self.get_value(desired_address)
         next_value = self.get_value(desired_address + 1)
         if value is None or next_value is None:
             return None
         # Combine the two 16-bit register values into a 32-bit integer
-        combined = (next_value << 16) | value
+        combined = (value << 16) | next_value
+
         if word_swap:
-            combined = (value << 16) | next_value
+            combined = (next_value << 16) | value
         # Convert the 32-bit integer to a float
         return round(struct.unpack("!f", struct.pack("!I", combined))[0], 3)
 
-    def get_uint32(self, desired_address, word_swap=True):
+    def get_uint32(self, desired_address, word_swap=False):
         high_word = self.get_value(desired_address)
         low_word = self.get_value(desired_address + 1)
         if word_swap:
             return (low_word << 16) + high_word
         return (high_word << 16) + low_word
+
+    def get_int32(self, desired_address, word_swap=False):
+        high_word = self.get_value(desired_address)
+        low_word = self.get_value(desired_address + 1)
+        value = (high_word << 16) + low_word
+        if word_swap:
+            value = (low_word << 16) + high_word
+
+        if value & 0x80000000:  # if the sign bit is set
+            value -= 0x100000000  # convert to signed
+        return value
 
     def get_string(self, desired_address):
         value = self.get_value(desired_address)

@@ -35,8 +35,8 @@ class MeasuringCentre(Device):
     DEVICE_PARAMETERS = {
         "MT": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
         "iMT": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
-        "MC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 4},
-        "iMC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 4},
+        "MC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
+        "iMC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
         # Add more models as needed
     }
 
@@ -186,13 +186,11 @@ class MeasuringCentre(Device):
             if handle_connection:
                 await self.adapter.open_connection()
 
-            data = await self.adapter.read_input_registers(2638, 16)
-            data_mapper = ModbusMapper(data, 2638)
+            data = await self.adapter.read_input_registers(400, 94)
+            data_mapper = ModbusMapper(data, 400)
             direction_settings = await self.adapter.read_holding_registers(151, 1)
-            resettable_counter_settings = await self.adapter.read_holding_registers(
-                421, 36
-            )
-            resettable_settings_mapper = ModbusMapper(resettable_counter_settings, 421)
+            counter_settings = await self.adapter.read_holding_registers(421, 94)
+            counter_settings_mapper = ModbusMapper(counter_settings, 421)
 
             # Close the connection
             if handle_connection:
@@ -206,16 +204,47 @@ class MeasuringCentre(Device):
 
             for counter in range(self.resettable_counters):
                 units = counter_units[
-                    resettable_settings_mapper.get_uint16(421 + 10 * counter)
+                    counter_settings_mapper.get_uint16(421 + 10 * counter) & 0x3
                 ]
                 direction = get_counter_direction(
-                    resettable_settings_mapper.get_uint16(422 + 10 * counter),
+                    counter_settings_mapper.get_uint16(422 + 10 * counter),
                     reverse_connection,
                 )
                 counter_type = get_counter_type(direction, units)
+                value = data_mapper.get_int32(406 + 2 * counter)
+                exponent = data_mapper.get_int16(401 + counter)
                 resettable.append(
                     Counter(
-                        data_mapper.get_float(2638 + 2 * counter),
+                        value * (10**exponent),
+                        units,
+                        direction,
+                        counter_type,
+                    )
+                )
+
+            for counter in range(self.non_resettable_counters):
+                units = counter_units[
+                    counter_settings_mapper.get_uint16(
+                        421 + 10 * (counter + self.resettable_counters)
+                    )
+                    & 0x3
+                ]
+                direction = get_counter_direction(
+                    counter_settings_mapper.get_uint16(
+                        422 + 10 * (counter + self.resettable_counters)
+                    ),
+                    reverse_connection,
+                )
+                counter_type = get_counter_type(direction, units)
+                value = data_mapper.get_int32(
+                    406 + 2 * (counter + self.resettable_counters)
+                )
+                exponent = data_mapper.get_int16(
+                    401 + (counter + self.resettable_counters)
+                )
+                non_resettable.append(
+                    Counter(
+                        value * (10**exponent),
                         units,
                         direction,
                         counter_type,
