@@ -136,7 +136,7 @@ class WM(Device):
                 "VA",
             )
             power_factor_total = Measurement(
-                mapper.get_t7(164),
+                mapper.get_t7(164)["value"],
                 "",
             )
             power_angle_total = Measurement(
