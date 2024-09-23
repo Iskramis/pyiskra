@@ -129,7 +129,7 @@ class WM(Device):
             )
             reactive_power_total = Measurement(
                 mapper.get_t6(148),
-                "VAR",
+                "var",
             )
             apparent_power_total = Measurement(
                 mapper.get_t5(156),

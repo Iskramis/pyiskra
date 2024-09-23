@@ -132,7 +132,7 @@ class Impact(Device):
             )
             reactive_power_total = Measurement(
                 mapper.get_float(2544),
-                "VAR",
+                "var",
             )
             apparent_power_total = Measurement(
                 mapper.get_float(2552),
