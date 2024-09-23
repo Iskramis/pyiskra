@@ -1,4 +1,2 @@
 aiohttp
 pymodbus
-psutil
-ipaddress

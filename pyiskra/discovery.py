@@ -1,8 +1,6 @@
 import asyncio
 import socket
-import psutil
 import logging
-import ipaddress
 
 log = logging.getLogger(__name__)
 
@@ -75,25 +73,8 @@ class Discovery:
             log.error(f"Error broadcasting to {ip_address}: {e}")
             raise e
 
-    async def poll(self, stop_if_found=None, ip=None):
+    async def poll(self, broadcast_addresses, stop_if_found=None):
         try:
-            if ip:
-                broadcast_addresses = [ip]
-            else:
-                broadcast_addresses = []
-                for interface, addrs in psutil.net_if_addrs().items():
-                    for addr in addrs:
-                        if addr.family == socket.AF_INET:
-                            network = ipaddress.IPv4Network(
-                                f"{addr.address}/{addr.netmask}", strict=False
-                            )
-                            # remove local-link and loopback
-                            if not addr.address.startswith(
-                                "169.254"
-                            ) and not addr.address.startswith("127."):
-                                broadcast_addresses.append(
-                                    str(network.broadcast_address)
-                                )
 
             # Broadcast UDP packets to all IPs concurrently
             await asyncio.gather(
@@ -140,17 +121,17 @@ class Discovery:
 
         return list(self.dev.values())
 
-    async def get_devices(self, ip=None):
+    async def get_devices(self, broadcast_addresses):
         try:
-            devices = await self.poll(ip=ip)
+            devices = await self.poll(broadcast_addresses)
             return devices
         except Exception as e:
             log.error(f"Error getting devices: {e}")
             raise
 
-    async def get_serial(self, serial):
+    async def get_serial(self, broadcast_addresses, serial):
         try:
-            devices = await self.poll(serial)
+            devices = await self.poll(broadcast_addresses, serial)
             for device in devices:
                 if device.serial.lower() == serial.lower():
                     return device

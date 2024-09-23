@@ -6,6 +6,7 @@ from pyiskra.exceptions import DeviceConnectionError, ProtocolNotSupported
 
 import asyncio
 import logging
+import netifaces
 
 
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +18,18 @@ authentication = {"username": "admin", "password": "iskra"}
 async def main():
 
     discovery = Discovery()
-    discovered_devices = await discovery.get_devices()
+    # Get all network interfaces
+    interfaces = netifaces.interfaces()
+    # Get the broadcast addresses for each interface
+    broadcast_addresses = []
+    for interface in interfaces:
+        addresses = netifaces.ifaddresses(interface)
+        if netifaces.AF_INET in addresses:
+            ipv4_addresses = addresses[netifaces.AF_INET]
+            for address in ipv4_addresses:
+                if "broadcast" in address:
+                    broadcast_addresses.append(address["broadcast"])
+    discovered_devices = await discovery.get_devices(broadcast_addresses)
 
     if not discovered_devices:
         logger.warning("No Iskra devices discovered.")
