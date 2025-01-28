@@ -3,10 +3,11 @@ import time
 import asyncio
 import struct
 
-from pyiskra.exceptions import InvalidResponseCode
+from pyiskra.exceptions import InvalidResponseCode, MeasurementTypeNotSupported
 from .BaseDevice import Device
 from ..adapters import RestAPI, Modbus
 from ..helper import (
+    MeasurementType,
     ModbusMapper,
     Measurements,
     Measurement,
@@ -42,6 +43,7 @@ class MeasuringCentre(Device):
 
     supports_measurements = True
     supports_counters = True
+    supports_interval_measurements = False
 
     async def init(self):
         """
@@ -53,13 +55,23 @@ class MeasuringCentre(Device):
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
-    async def get_measurements(self):
+    async def get_measurements(
+        self, measurement_type: MeasurementType = MeasurementType.ACTUAL_MEASUREMENTS
+    ):
         """
         Retrieves measurements from the device.
 
         Returns:
             dict: A dictionary containing the measurements.
         """
+        if (
+            measurement_type != MeasurementType.ACTUAL_MEASUREMENTS
+            and self.supports_interval_measurements == False
+        ):
+            raise MeasurementTypeNotSupported(
+                f"{measurement_type} is not supported by {self.model}"
+            )
+
         if isinstance(self.adapter, RestAPI):
             log.debug(
                 f"Getting measurements from Rest API for {self.model} {self.serial}"

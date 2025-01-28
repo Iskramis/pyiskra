@@ -3,7 +3,7 @@ import time
 import asyncio
 import struct
 
-from pyiskra.exceptions import InvalidResponseCode
+from pyiskra.exceptions import InvalidResponseCode, MeasurementTypeNotSupported
 from .BaseDevice import Device
 from ..adapters import RestAPI, Modbus
 from ..helper import (
@@ -17,6 +17,8 @@ from ..helper import (
     counter_units,
     get_counter_direction,
     get_counter_type,
+    IntervalMeasurementStats,
+    MeasurementType,
 )
 
 log = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ class WM(Device):
 
     supports_measurements = True
     supports_counters = True
+    supports_interval_measurements = True
 
     async def init(self):
         """
@@ -52,13 +55,23 @@ class WM(Device):
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
-    async def get_measurements(self):
+    async def get_measurements(
+        self, measurement_type: MeasurementType = MeasurementType.ACTUAL_MEASUREMENTS
+    ):
         """
         Retrieves measurements from the device.
 
         Returns:
             dict: A dictionary containing the measurements.
         """
+        if (
+            measurement_type != MeasurementType.ACTUAL_MEASUREMENTS
+            and self.supports_interval_measurements == False
+        ):
+            raise MeasurementTypeNotSupported(
+                f"{measurement_type} is not supported by {self.model}"
+            )
+
         if isinstance(self.adapter, RestAPI):
             log.debug(
                 f"Getting measurements from Rest API for {self.model} {self.serial}"
@@ -68,8 +81,34 @@ class WM(Device):
             log.debug(
                 f"Getting measurements from Modbus for {self.model} {self.serial}"
             )
-            data = await self.adapter.read_input_registers(105, 85)
-            mapper = ModbusMapper(data, 105)
+
+            offset = 0
+            last_interval_duration = None
+            time_since_last_measurement = None
+            avg_measurement_counter = None
+
+            # Other measurement type registers are just shifted
+            if measurement_type == MeasurementType.AVERAGE_MEASUREMENTS:
+                offset = 5400
+            elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
+                offset = 5500
+            elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
+                offset = 5600
+
+            interval_stats = None
+            data = await self.adapter.read_input_registers(100 + offset, 91)
+            mapper = ModbusMapper(data, 100)
+
+            if measurement_type != MeasurementType.ACTUAL_MEASUREMENTS:
+                interval_stats = IntervalMeasurementStats()
+                interval_data = await self.adapter.read_input_registers(5500, 2)
+                interval_stats_mapper = ModbusMapper(interval_data, 100)
+                interval_stats.last_interval_duration = (
+                    interval_stats_mapper.get_uint16(100) / 10
+                )
+                interval_stats.time_since_last_measurement = (
+                    interval_stats_mapper.get_int16(101) / 10
+                )
 
             phases = []
             for phase in range(self.phases):
@@ -101,12 +140,12 @@ class WM(Device):
                     mapper.get_int16(173 + phase) / 100,
                     "°",
                 )
-                thd_current = Measurement(
+                thd_voltage = Measurement(
                     mapper.get_uint16(182 + phase) / 100,
                     "%",
                 )
-                thd_voltage = Measurement(
-                    mapper.get_uint16(182 + phase) / 100,
+                thd_current = Measurement(
+                    mapper.get_uint16(188 + phase) / 100,
                     "%",
                 )
                 phases.append(
@@ -159,7 +198,7 @@ class WM(Device):
                 power_angle_total,
             )
 
-            return Measurements(phases, total, frequency, temperature)
+            return Measurements(phases, total, frequency, temperature, interval_stats)
 
     async def get_counters(self):
         """

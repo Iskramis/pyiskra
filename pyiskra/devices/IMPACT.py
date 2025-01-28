@@ -7,6 +7,8 @@ import re
 from .BaseDevice import Device
 from ..adapters import RestAPI, Modbus
 from ..helper import (
+    IntervalMeasurementStats,
+    MeasurementType,
     ModbusMapper,
     Measurements,
     Measurement,
@@ -18,6 +20,7 @@ from ..helper import (
     get_counter_direction,
     get_counter_type,
 )
+from ..exceptions import MeasurementTypeNotSupported
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +43,7 @@ class Impact(Device):
 
     supports_measurements = True
     supports_counters = True
+    supports_interval_measurements = True
 
     async def init(self):
         """
@@ -51,13 +55,23 @@ class Impact(Device):
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
-    async def get_measurements(self):
+    async def get_measurements(
+        self, measurement_type: MeasurementType = MeasurementType.ACTUAL_MEASUREMENTS
+    ):
         """
         Retrieves measurements from the device.
 
         Returns:
             dict: A dictionary containing the measurements.
         """
+        if (
+            measurement_type != MeasurementType.ACTUAL_MEASUREMENTS
+            and self.supports_interval_measurements == False
+        ):
+            raise MeasurementTypeNotSupported(
+                f"{measurement_type} is not supported by {self.model}"
+            )
+
         if isinstance(self.adapter, RestAPI):
             log.debug(
                 f"Getting measurements from Rest API for {self.model} {self.serial}"
@@ -67,49 +81,71 @@ class Impact(Device):
             log.debug(
                 f"Getting measurements from Modbus for {self.model} {self.serial}"
             )
-            data = await self.adapter.read_input_registers(2500, 106)
-            mapper = ModbusMapper(data, 2500)
 
-            data_temperature = await self.adapter.read_input_registers(2658, 2)
-            temperature_mapper = ModbusMapper(data_temperature, 2658)
+            offset = 0
+            last_interval_duration = None
+            time_since_last_measurement = None
+            avg_measurement_counter = None
+
+            # Other measurement type registers are just shifted
+            if measurement_type == MeasurementType.AVERAGE_MEASUREMENTS:
+                offset = 5400
+            elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
+                offset = 5500
+            elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
+                offset = 5600
+
+            interval_stats = None
+            data = await self.adapter.read_input_registers(100 + offset, 91)
+            mapper = ModbusMapper(data, 100)
+
+            if measurement_type != MeasurementType.ACTUAL_MEASUREMENTS:
+                interval_stats = IntervalMeasurementStats()
+                interval_data = await self.adapter.read_input_registers(5500, 2)
+                interval_stats_mapper = ModbusMapper(interval_data, 100)
+                interval_stats.last_interval_duration = (
+                    interval_stats_mapper.get_uint16(100) / 10
+                )
+                interval_stats.time_since_last_measurement = (
+                    interval_stats_mapper.get_int16(101) / 10
+                )
 
             phases = []
             for phase in range(self.phases):
-
                 voltage = Measurement(
-                    mapper.get_float(2500 + 2 * phase),
+                    mapper.get_t5(107 + 2 * phase),
                     "V",
                 )
                 current = Measurement(
-                    mapper.get_float(2516 + 2 * phase),
+                    mapper.get_t5(126 + 2 * phase),
                     "A",
                 )
                 active_power = Measurement(
-                    mapper.get_float(2530 + 2 * phase),
+                    mapper.get_t6(142 + 2 * phase),
                     "W",
                 )
                 reactive_power = Measurement(
-                    mapper.get_float(2538 + 2 * phase),
+                    mapper.get_t6(150 + 2 * phase),
                     "var",
                 )
                 apparent_power = Measurement(
-                    mapper.get_float(2546 + 2 * phase),
+                    mapper.get_t5(158 + 2 * phase),
                     "VA",
                 )
                 power_factor = Measurement(
-                    mapper.get_float(2554 + 2 * phase),
+                    mapper.get_t7(166 + 2 * phase)["value"],
                     "",
                 )
                 power_angle = Measurement(
-                    mapper.get_float(2570 + 2 * phase),
+                    mapper.get_int16(173 + phase) / 100,
                     "°",
                 )
-                thd_current = Measurement(
-                    mapper.get_float(2588 + 2 * phase),
+                thd_voltage = Measurement(
+                    mapper.get_uint16(182 + phase) / 100,
                     "%",
                 )
-                thd_voltage = Measurement(
-                    mapper.get_float(2594 + 2 * phase),
+                thd_current = Measurement(
+                    mapper.get_uint16(188 + phase) / 100,
                     "%",
                 )
                 phases.append(
@@ -127,31 +163,31 @@ class Impact(Device):
                 )
 
             active_power_total = Measurement(
-                mapper.get_float(2536),
+                mapper.get_t6(140),
                 "W",
             )
             reactive_power_total = Measurement(
-                mapper.get_float(2544),
+                mapper.get_t6(148),
                 "var",
             )
             apparent_power_total = Measurement(
-                mapper.get_float(2552),
+                mapper.get_t5(156),
                 "VA",
             )
             power_factor_total = Measurement(
-                mapper.get_float(2560),
+                mapper.get_t7(164)["value"],
                 "",
             )
             power_angle_total = Measurement(
-                mapper.get_float(2576),
+                mapper.get_int16(172) / 100,
                 "°",
             )
             frequency = Measurement(
-                mapper.get_float(2584),
+                mapper.get_t5(105),
                 "Hz",
             )
             temperature = Measurement(
-                temperature_mapper.get_float(2658),
+                mapper.get_int16(181) / 100,
                 "°C",
             )
             total = Total_Measurements(
@@ -162,7 +198,7 @@ class Impact(Device):
                 power_angle_total,
             )
 
-            return Measurements(phases, total, frequency, temperature)
+            return Measurements(phases, total, frequency, temperature, interval_stats)
 
     async def get_counters(self):
         """

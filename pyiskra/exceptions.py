@@ -23,3 +23,7 @@ class DeviceTimeoutError(Exception):
 
 class InvalidResponseCode(Exception):
     pass
+
+
+class MeasurementTypeNotSupported(Exception):
+    pass

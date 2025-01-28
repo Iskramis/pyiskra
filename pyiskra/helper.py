@@ -1,6 +1,12 @@
+from datetime import datetime
 import struct
 import time
 from enum import Enum
+
+
+class IntervalMeasurementStats:
+    last_interval_duration: int
+    time_since_last_measurement: int
 
 
 class BasicInfo:
@@ -89,14 +95,23 @@ class Measurements:
     total: Total_Measurements
     frequency: Measurement
     temperature: Measurement
+    interval_stats: IntervalMeasurementStats
 
-    def __init__(self, phases=None, total=None, frequency=None, temperature=None):
+    def __init__(
+        self,
+        phases=None,
+        total=None,
+        frequency=None,
+        temperature=None,
+        interval_stats=None,
+    ):
         self.timestamp = time.time()
 
         self.phases = phases
         self.total = total
         self.frequency = frequency
         self.temperature = temperature
+        self.interval_stats = interval_stats
 
 
 class CounterType(Enum):
@@ -107,6 +122,13 @@ class CounterType(Enum):
     APPARENT_IMPORT = "apparent_import"
     APPARENT_EXPORT = "apparent_export"
     UNKNOWN = "unknown"
+
+
+class MeasurementType(Enum):
+    ACTUAL_MEASUREMENTS = "actual_measuremtns"
+    AVERAGE_MEASUREMENTS = "average_measurements"
+    MIN_MEASUREMENTS = "min_measurements"
+    MAX_MEASUREMENTS = "max_measurements"
 
 
 class Counter:
@@ -256,6 +278,10 @@ class ModbusMapper:
         if value > 32767:
             value -= 65536
         return value
+
+    def get_timestamp(self, desired_address):
+        value = self.get_uint32(desired_address)
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(value))
 
     def get_float(self, desired_address, word_swap=False):
         value = self.get_value(desired_address)
