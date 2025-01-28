@@ -40,7 +40,6 @@ class Modbus(Adapter):
         elif protocol == "rtu":
             self.protocol = "rtu"
             self.client = AsyncModbusSerialClient(
-                method="rtu",
                 port=port,
                 stopbits=stopbits,
                 bytesize=bytesize,
@@ -147,7 +146,7 @@ class Modbus(Adapter):
             await self.open_connection()
         try:
             response = await self.client.read_holding_registers(
-                start, count, slave=self.modbus_address
+                start, count=count, slave=self.modbus_address
             )
         except Exception as e:
             raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
@@ -173,7 +172,7 @@ class Modbus(Adapter):
             await self.open_connection()
         try:
             response = await self.client.read_input_registers(
-                start, count, slave=self.modbus_address
+                start, count=count, slave=self.modbus_address
             )
         except Exception as e:
             raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e

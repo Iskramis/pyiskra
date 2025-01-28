@@ -1,2 +1,2 @@
 aiohttp
-pymodbus
+pymodbus==3.8.3
