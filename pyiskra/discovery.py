@@ -19,7 +19,7 @@ class DiscoveredDevice:
         if discovery_info[3] != int.from_bytes(b"\x1b"):
             raise AttributeError("Not device info")
         data["ssid"] = discovery_info[8:20].decode("utf-8").replace("\x00", "").strip()
-        data["mac"] = discovery_info[20:25].hex(":")
+        data["mac"] = discovery_info[20:26].hex(":")
         data["tcp"] = int.from_bytes(discovery_info[26:27])
         data["model"] = (
             discovery_info[28:42].decode("utf-8").replace("\x00", "").strip()
