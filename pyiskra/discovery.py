@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 UDP_DST_PORT = 33333
 RCV_BUFSIZ = 1024
 
-GRACE_SECONDS = 5
+GRACE_SECONDS = 2
 
 DISCOVERY_MSG = b"\x00\x00\x00\x1a"
 
