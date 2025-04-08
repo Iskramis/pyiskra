@@ -130,54 +130,78 @@ class Modbus(Adapter):
         basic_info["location"] = mapper.get_string_range(121, 20)
         return BasicInfo(**basic_info)
 
-    async def read_holding_registers(self, start, count):
+    async def read_holding_registers(self, start, count, max_registers_per_read=120):
         """
-        Reads the specified number of registers starting from the specified address.
+        Reads any number of registers by splitting large requests into chunks.
 
         Args:
             start (int): The starting address of the registers.
-            count (int): The number of registers to read.
+            count (int): The total number of registers to read.
+            max_registers_per_read (int): Maximum registers per Modbus request (default: 120).
 
         Returns:
-            list: A list of the read registers.
+            list: Combined list of all read registers.
         """
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
+
+        registers = []
         try:
-            response = await self.client.read_holding_registers(
-                start, count=count, slave=self.modbus_address
-            )
+            for offset in range(0, count, max_registers_per_read):
+                chunk_start = start + offset
+                remaining = count - offset
+                chunk_count = min(remaining, max_registers_per_read)
+                
+                response = await self.client.read_holding_registers(
+                    chunk_start, 
+                    count=chunk_count, 
+                    slave=self.modbus_address
+                )
+                registers.extend(response.registers)
+                
         except Exception as e:
             raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
+        finally:
+            if handle_connection:
+                await self.close_connection()
 
-        if handle_connection:
-            await self.close_connection()
+        return registers
 
-        return response.registers
-
-    async def read_input_registers(self, start, count):
+    async def read_input_registers(self, start, count, max_registers_per_read=120):
         """
-        Reads the specified number of registers starting from the specified address.
+        Reads any number of input registers by splitting large requests into chunks.
 
         Args:
             start (int): The starting address of the registers.
-            count (int): The number of registers to read.
+            count (int): The total number of registers to read.
+            max_registers_per_read (int): Maximum registers per Modbus request (default: 120).
 
         Returns:
-            list: A list of the read registers.
+            list: Combined list of all read registers.
         """
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
+
+        registers = []
         try:
-            response = await self.client.read_input_registers(
-                start, count=count, slave=self.modbus_address
-            )
+            for offset in range(0, count, max_registers_per_read):
+                chunk_start = start + offset
+                remaining = count - offset
+                chunk_count = min(remaining, max_registers_per_read)
+                
+                response = await self.client.read_input_registers(
+                    chunk_start, 
+                    count=chunk_count, 
+                    slave=self.modbus_address
+                )
+                registers.extend(response.registers)
+                
         except Exception as e:
-            raise DeviceConnectionError(f"Failed to read holding registers: {e}") from e
+            raise DeviceConnectionError(f"Failed to read input registers: {e}") from e
+        finally:
+            if handle_connection:
+                await self.close_connection()
 
-        if handle_connection:
-            await self.close_connection()
-
-        return response.registers
+        return registers
