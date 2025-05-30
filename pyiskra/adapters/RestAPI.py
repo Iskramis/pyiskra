@@ -140,6 +140,27 @@ class RestAPI(Adapter):
         child_devices = (await self.get_resource("api/devices")).get("devices", [])
         return child_devices
 
+    def parse_measurement(self, measurement, default_unit=None):
+        # New format: dict with 'value' and 'unit'
+        if (
+            isinstance(measurement, dict)
+            and "value" in measurement
+            and "unit" in measurement
+        ):
+            return Measurement(float(measurement["value"]), measurement["unit"])
+        # Old format: string "value unit"
+        elif isinstance(measurement, str):
+            parts = measurement.split(" ")
+            if len(parts) == 2:
+                return Measurement(float(parts[0]), parts[1])
+            elif len(parts) == 1 and default_unit:
+                return Measurement(float(parts[0]), default_unit)
+
+        # Already a float/int, use default unit if provided
+        elif isinstance(measurement, (float, int)) and default_unit:
+            return Measurement(float(measurement), default_unit)
+        return None
+
     async def get_measurements(self):
         """
         Get the measurements.
@@ -172,40 +193,42 @@ class RestAPI(Adapter):
                 thd_voltage = None
                 thd_current = None
 
-                temp = phase.get("U", None)
+                temp = phase.get("U", phase.get("voltage", None))
                 if temp:
-                    temp = temp.split(" ")
-                    voltage = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("I", None)
+                    voltage = self.parse_measurement(temp)
+
+                temp = phase.get("I", phase.get("current", None))
                 if temp:
-                    temp = temp.split(" ")
-                    current = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("P", None)
+                    current = self.parse_measurement(temp)
+
+                temp = phase.get("P", phase.get("active_power", None))
                 if temp:
-                    temp = temp.split(" ")
-                    active_power = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("Q", None)
+                    active_power = self.parse_measurement(temp)
+
+                temp = phase.get("Q", phase.get("reactive_power", None))
                 if temp:
-                    temp = temp.split(" ")
-                    reactive_power = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("S", None)
+                    reactive_power = self.parse_measurement(temp)
+
+                temp = phase.get("S", phase.get("apparent_power", None))
                 if temp:
-                    temp = temp.split(" ")
-                    apparent_power = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("PF", None)
+                    apparent_power = self.parse_measurement(temp)
+
+                temp = phase.get("PF", phase.get("power_factor", None))
                 if temp:
-                    temp = temp.split(" ")
-                    power_factor = Measurement(float(temp[0]), temp[-1])
-                temp = phase.get("PA", None)
+                    power_factor = self.parse_measurement(temp)
+
+                temp = phase.get("PA", phase.get("power_angle", None))
                 if temp:
-                    temp = temp.split(" ")
-                    power_angle = Measurement(float(temp[0]), "°")
-                temp = phase.get("THDUp", None)
+                    power_angle = self.parse_measurement(temp, "°")
+
+                temp = phase.get("THDUp", phase.get("THD_voltage", None))
                 if temp:
-                    thd_voltage = Measurement(float(temp), "%")
-                temp = phase.get("THDI", None)
+                    thd_voltage = self.parse_measurement(temp, "%")
+
+                temp = phase.get("THDI", phase.get("THD_current", None))
                 if temp:
-                    thd_current = Measurement(float(temp), "%")
+                    thd_current = self.parse_measurement(temp, "%")
+
                 phases.append(
                     Phase_Measurements(
                         voltage,
@@ -220,35 +243,53 @@ class RestAPI(Adapter):
                     )
                 )
             if json_data.get("Total"):
-                temp = json_data.get("Total", {}).get("P", None)
+                total_measurements = json_data.get("Total", {})
+
+                temp = total_measurements.get(
+                    "P", total_measurements.get("active_power", None)
+                )
                 if temp:
-                    temp = temp.split(" ")
-                    active_power = Measurement(float(temp[0]), temp[1])
-                temp = json_data.get("Total", {}).get("Q", None)
+                    active_power = self.parse_measurement(temp)
+
+                temp = total_measurements.get(
+                    "Q", total_measurements.get("reactive_power", None)
+                )
                 if temp:
-                    temp = temp.split(" ")
-                    reactive_power = Measurement(float(temp[0]), temp[1])
-                temp = json_data.get("Total", {}).get("S", None)
+                    reactive_power = self.parse_measurement(temp)
+
+                temp = total_measurements.get(
+                    "S", total_measurements.get("apparent_power", None)
+                )
                 if temp:
-                    temp = temp.split(" ")
-                    apparent_power = Measurement(float(temp[0]), temp[1])
-                temp = json_data.get("Total", {}).get("PF", None)
+                    apparent_power = self.parse_measurement(temp)
+
+                temp = total_measurements.get(
+                    "PF", total_measurements.get("power_factor", None)
+                )
                 if temp:
-                    temp = temp.split(" ")
-                    power_factor = Measurement(float(temp[0]), temp[1])
-                temp = json_data.get("Total", {}).get("PA", None)
+                    power_factor = self.parse_measurement(temp)
+
+                temp = total_measurements.get(
+                    "PA", total_measurements.get("power_angle", None)
+                )
                 if temp:
-                    temp = temp.split(" ")
-                    power_angle = Measurement(float(temp[0]), "°")
+                    power_angle = self.parse_measurement(temp, "°")
+
                 total = Total_Measurements(
-                    active_power, reactive_power, apparent_power, power_factor
+                    active_power,
+                    reactive_power,
+                    apparent_power,
+                    power_factor,
+                    power_angle,
                 )
 
-            if json_data.get("Frequency"):
-                frequency = Measurement(float(json_data.get("Frequency")), "Hz")
+            temp = json_data.get("Frequency", json_data.get("frequency", None))
+            if temp:
+                frequency = self.parse_measurement(temp, "Hz")
 
-            if json_data.get("Temperature"):
-                temperature = Measurement(float(json_data.get("Temperature")), "°C")
+            temp = json_data.get("Temperature", json_data.get("temperature", None))
+            if temp:
+                temperature = self.parse_measurement(temp, "°C")
 
             return Measurements(
                 phases=phases,
