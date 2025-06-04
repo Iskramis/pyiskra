@@ -148,9 +148,8 @@ class RestAPI(Adapter):
             and "unit" in measurement
         ):
             return Measurement(float(measurement["value"]), measurement["unit"])
-        # Old format: string "value unit"
         elif isinstance(measurement, str):
-            parts = measurement.split(" ")
+            parts = measurement.split()
             if len(parts) == 2:
                 return Measurement(float(parts[0]), parts[1])
             elif len(parts) == 1 and default_unit:
