@@ -24,6 +24,8 @@ class BasicInfo:
         self.location = location
         self.sw_ver = sw_ver
 
+    def __str__(self):
+        return f'{self.model} {self.serial} {self.sw_ver} {self.description} {self.location}'
 
 class Measurement:
     value: float

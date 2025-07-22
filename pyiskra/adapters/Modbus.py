@@ -105,6 +105,9 @@ class Modbus(Adapter):
 
         Returns:
             BasicInfo: An object containing the basic information of the device.
+
+        Raises:
+            DeviceConnectionError: If reading failed
         """
         basic_info = {}
 
@@ -114,8 +117,8 @@ class Modbus(Adapter):
             data = await self.read_input_registers(1, 14)
             mapper = ModbusMapper(data, 1)
 
-            basic_info["model"] = mapper.get_string_range(1, 8)
-            basic_info["serial"] = mapper.get_string_range(9, 4)
+            basic_info["model"] = mapper.get_string_range(1, 8).strip()
+            basic_info["serial"] = mapper.get_string_range(9, 4).strip()
             basic_info["sw_ver"] = mapper.get_uint16(13) / 100
 
             data = await self.read_holding_registers(101, 40)
@@ -141,6 +144,9 @@ class Modbus(Adapter):
 
         Returns:
             list: Combined list of all read registers.
+
+        Raises:
+            DeviceConnectionError: If reading failed
         """
         handle_connection = not self.connected
         if handle_connection:
@@ -179,6 +185,9 @@ class Modbus(Adapter):
 
         Returns:
             list: Combined list of all read registers.
+
+        Raises:
+            DeviceConnectionError: If reading failed
         """
         handle_connection = not self.connected
         if handle_connection:
@@ -205,3 +214,75 @@ class Modbus(Adapter):
                 await self.close_connection()
 
         return registers
+    
+
+    async def write_holding_register(self, address, value):
+        """
+        Writes a single value to a holding register.
+
+        Args:
+            address (int): Register address.
+            value (int): Value to write.
+
+        Raises:
+            DeviceConnectionError: If writing failed
+
+
+        """
+
+        handle_connection = not self.connected
+        if handle_connection:
+            await self.open_connection()
+    
+        try:
+            response = await self.client.write_register(
+                address=address,
+                value=value,
+                slave=self.modbus_address
+            )
+            return not response.isError()
+        except Exception as e:
+            raise DeviceConnectionError(f"Failed to write holding register: {e}") from e
+        finally:
+            if handle_connection:
+                await self.close_connection()
+
+
+
+
+    async def write_holding_registers(self, address, values, max_registers_per_write=120):
+        """
+        Writes multiple values to holding registers in chunks.
+
+        Args:
+            address (int): Starting register address.
+            values (list[int]): List of values to write.
+            max_registers_per_write (int): Maximum number of registers per write operation.
+
+        Raises:
+            DeviceConnectionError: If writing failed
+        """
+        handle_connection = not self.connected
+        if handle_connection:
+            await self.open_connection()
+                
+
+        try:
+            total_values= len(values)
+            for offset in range(0, total_values, max_registers_per_write):
+                chunk_address = address + offset
+                chunk_values = values[offset:offset + max_registers_per_write]
+
+                response = await self.client.write_registers(
+                    address=chunk_address,
+                    values=chunk_values,
+                    slave=self.modbus_address
+                )
+
+                if response.isError():
+                    raise DeviceConnectionError(f"Write error at address {chunk_address}")
+        except Exception as e:
+            raise DeviceConnectionError(f"Faied to write holding registers: {e}") from e
+        finally:
+            if handle_connection:
+                await self.close_connection()
