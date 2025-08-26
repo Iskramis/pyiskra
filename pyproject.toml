@@ -24,15 +24,16 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 
+dependencies = [
+    "aiohttp",
+    "pymodbus==3.11.1",
+]
+
 [project.urls]
 Homepage = "https://github.com/Iskramis/pyiskra"
 Repository = "https://github.com/Iskramis/pyiskra"
 Documentation = "https://github.com/Iskramis/pyiskra"
 
-dependencies = [
-    "aiohttp",
-    "pymodbus==3.11.1",
-]
 
 [tool.setuptools.packages.find]
 where = ["."]
