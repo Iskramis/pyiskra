@@ -1,16 +1,20 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry]
+[project]
 name = "pyiskra"
-version = "0.1.21"
+version = "0.1.22"
 description = "Python Iskra devices interface"
-authors = ["Iskra d.o.o. <razvoj.mis@iskra.eu>"]
-license = "GPL"
 readme = "README.md"
-homepage = "https://github.com/Iskramis/pyiskra"
-repository = "https://github.com/Iskramis/pyiskra"
-documentation = "https://github.com/Iskramis/pyiskra"
+requires-python = ">=3.8"
+license = { text = "GPL" }
+authors = [
+  { name = "Iskra d.o.o.", email = "razvoj.mis@iskra.eu" },
+]
+maintainers = [
+  { name = "Iskra", email = "razvoj.mis@iskra.eu" },
+]
 keywords = ["homeautomation", "iskra", "energy meter"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,9 +24,15 @@ classifiers = [
     "Topic :: Home Automation",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.8"
+[project.urls]
+Homepage = "https://github.com/Iskramis/pyiskra"
+Repository = "https://github.com/Iskramis/pyiskra"
+Documentation = "https://github.com/Iskramis/pyiskra"
+
+[project.dependencies]
 aiohttp = "*"
 pymodbus = "3.11.1"
 
-[tool.poetry.dev-dependencies]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyiskra*"]
