@@ -23,6 +23,6 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 aiohttp = "*"
-pymodbus = "3.8.3"
+pymodbus = "3.11.1"
 
 [tool.poetry.dev-dependencies]

@@ -118,7 +118,9 @@ class Modbus(Adapter):
             mapper = ModbusMapper(data, 1)
         except Exception as e:
             await self.close_connection()
-            raise DeviceConnectionError(f"Failed to read base identification: {e}") from e
+            raise DeviceConnectionError(
+                f"Failed to read base identification: {e}"
+            ) from e
 
         basic_info["model"] = mapper.get_string_range(1, 8).strip()
         basic_info["serial"] = mapper.get_string_range(9, 4).strip()
@@ -129,8 +131,10 @@ class Modbus(Adapter):
             mapper = ModbusMapper(data, 101)
         except Exception as e:
             await self.close_connection()
-            raise DeviceConnectionError(f"Failed to read description & location: {e}") from e
-            
+            raise DeviceConnectionError(
+                f"Failed to read description & location: {e}"
+            ) from e
+
         basic_info["description"] = mapper.get_string_range(101, 20)
         basic_info["location"] = mapper.get_string_range(121, 20)
 
@@ -174,16 +178,16 @@ class Modbus(Adapter):
                 chunk_start = start + offset
                 remaining = count - offset
                 chunk_count = min(remaining, max_registers_per_read)
-                
+
                 response = await self.client.read_holding_registers(
-                    chunk_start, 
-                    count=chunk_count, 
-                    slave=self.modbus_address
+                    chunk_start, count=chunk_count, device_id=self.modbus_address
                 )
                 registers.extend(response.registers)
-                
+
         except Exception as e:
-            raise DeviceConnectionError(f"Failed to read holding registers [{chunk_start}-{chunk_start+count-1}] : {e}") from e
+            raise DeviceConnectionError(
+                f"Failed to read holding registers [{chunk_start}-{chunk_start+count-1}] : {e}"
+            ) from e
         finally:
             if handle_connection:
                 await self.close_connection()
@@ -215,22 +219,21 @@ class Modbus(Adapter):
                 chunk_start = start + offset
                 remaining = count - offset
                 chunk_count = min(remaining, max_registers_per_read)
-                
+
                 response = await self.client.read_input_registers(
-                    chunk_start, 
-                    count=chunk_count, 
-                    slave=self.modbus_address
+                    chunk_start, count=chunk_count, device_id=self.modbus_address
                 )
                 registers.extend(response.registers)
-                
+
         except Exception as e:
-            raise DeviceConnectionError(f"Failed to read input registers [{chunk_start}-{chunk_start+count-1}]: {e}") from e
+            raise DeviceConnectionError(
+                f"Failed to read input registers [{chunk_start}-{chunk_start+count-1}]: {e}"
+            ) from e
         finally:
             if handle_connection:
                 await self.close_connection()
 
         return registers
-    
 
     async def write_holding_register(self, address, value):
         """
@@ -249,24 +252,23 @@ class Modbus(Adapter):
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
-    
+
         try:
             response = await self.client.write_register(
-                address=address,
-                value=value,
-                slave=self.modbus_address
+                address=address, value=value, device_id=self.modbus_address
             )
             return not response.isError()
         except Exception as e:
-            raise DeviceConnectionError(f"Failed to write holding register[{address}]: {e}") from e
+            raise DeviceConnectionError(
+                f"Failed to write holding register[{address}]: {e}"
+            ) from e
         finally:
             if handle_connection:
                 await self.close_connection()
 
-
-
-
-    async def write_holding_registers(self, address, values, max_registers_per_write=120):
+    async def write_holding_registers(
+        self, address, values, max_registers_per_write=120
+    ):
         """
         Writes multiple values to holding registers in chunks.
 
@@ -281,24 +283,27 @@ class Modbus(Adapter):
         handle_connection = not self.connected
         if handle_connection:
             await self.open_connection()
-                
 
         try:
-            total_values= len(values)
+            total_values = len(values)
             for offset in range(0, total_values, max_registers_per_write):
                 chunk_address = address + offset
-                chunk_values = values[offset:offset + max_registers_per_write]
+                chunk_values = values[offset : offset + max_registers_per_write]
 
                 response = await self.client.write_registers(
                     address=chunk_address,
                     values=chunk_values,
-                    slave=self.modbus_address
+                    device_id=self.modbus_address,
                 )
 
                 if response.isError():
-                    raise DeviceConnectionError(f"Write error at address {chunk_address}")
+                    raise DeviceConnectionError(
+                        f"Write error at address {chunk_address}"
+                    )
         except Exception as e:
-            raise DeviceConnectionError(f"Faied to write holding registers [{address}-{len(values)-1}]: {e}") from e
+            raise DeviceConnectionError(
+                f"Faied to write holding registers [{address}-{len(values)-1}]: {e}"
+            ) from e
         finally:
             if handle_connection:
                 await self.close_connection()
