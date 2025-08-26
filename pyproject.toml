@@ -29,9 +29,10 @@ Homepage = "https://github.com/Iskramis/pyiskra"
 Repository = "https://github.com/Iskramis/pyiskra"
 Documentation = "https://github.com/Iskramis/pyiskra"
 
-[project.dependencies]
-aiohttp = "*"
-pymodbus = "3.11.1"
+dependencies = [
+    "aiohttp",
+    "pymodbus==3.11.1",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
