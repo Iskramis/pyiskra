@@ -3,7 +3,7 @@ from pyiskra.devices import Device
 from pyiskra.adapters import Modbus
 
 
-Device_ip = "10.34.11.104"
+Device_ip = "10.34.94.11"
 
 
 async def main():
