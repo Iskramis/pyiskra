@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyiskra"
-version = "0.1.22"
+version = "0.1.23"
 description = "Python Iskra devices interface"
 readme = "README.md"
 requires-python = ">=3.8"
