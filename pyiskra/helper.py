@@ -17,17 +17,15 @@ class BasicInfo:
         description,
         location,
         sw_ver,
-        max_registers_to_read,
     ):
         self.serial = serial
         self.model = model
         self.description = description
         self.location = location
         self.sw_ver = sw_ver
-        self.max_registers_to_read = max_registers_to_read
 
     def __str__(self):
-        return f'{self.model} {self.serial} {self.sw_ver} {self.description} {self.location} {self.max_registers_to_read}'
+        return f'{self.model} {self.serial} {self.sw_ver} {self.description} {self.location}'
 
 class Measurement:
     value: float

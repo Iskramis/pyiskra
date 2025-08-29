@@ -122,35 +122,20 @@ class Modbus(Adapter):
                 f"Failed to read base identification: {e}"
             ) from e
 
-        basic_info["model"] = mapper.get_string_range(1, 8).strip()
-        basic_info["serial"] = mapper.get_string_range(9, 4).strip()
-        basic_info["sw_ver"] = mapper.get_uint16(13) / 100
+            basic_info["model"] = mapper.get_string_range(1, 8).strip()
+            basic_info["serial"] = mapper.get_string_range(9, 4).strip()
+            basic_info["sw_ver"] = mapper.get_uint16(13) / 100
 
-        try:
             data = await self.read_holding_registers(101, 40)
             mapper = ModbusMapper(data, 101)
         except Exception as e:
             await self.close_connection()
-            raise DeviceConnectionError(
-                f"Failed to read description & location: {e}"
-            ) from e
+            raise DeviceConnectionError(f"Failed to read basic info: {e}") from e
 
+        # Close the connection
+        await self.close_connection()
         basic_info["description"] = mapper.get_string_range(101, 20)
         basic_info["location"] = mapper.get_string_range(121, 20)
-
-        try:
-            if basic_info["model"].startswith("BI"):
-                data = await self.read_input_registers(20, 1)
-            else:
-                data = await self.read_input_registers(99, 1)
-
-            basic_info["max_registers_to_read"] = data[0]
-        except Exception as e:
-            await self.close_connection()
-            raise DeviceConnectionError(f"Failed to read max registers to read at once")
-
-        await self.close_connection()
-
         return BasicInfo(**basic_info)
 
     async def read_holding_registers(self, start, count, max_registers_per_read=120):
@@ -302,7 +287,7 @@ class Modbus(Adapter):
                     )
         except Exception as e:
             raise DeviceConnectionError(
-                f"Faied to write holding registers [{address}-{len(values)-1}]: {e}"
+                f"Failed to write holding registers [{address}-{address+len(values)-1}]: {e}"
             ) from e
         finally:
             if handle_connection:
