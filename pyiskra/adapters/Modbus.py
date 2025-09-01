@@ -110,33 +110,37 @@ class Modbus(Adapter):
             DeviceConnectionError: If reading failed
         """
         basic_info = {}
-
-        # Open the connection
         await self.open_connection()
+
         try:
-            data = await self.read_input_registers(1, 14)
-            mapper = ModbusMapper(data, 1)
-        except Exception as e:
-            await self.close_connection()
-            raise DeviceConnectionError(
-                f"Failed to read base identification: {e}"
-            ) from e
+            try:
+                data = await self.read_input_registers(1, 14)
+                mapper = ModbusMapper(data, 1)
+            except Exception as e:
+                raise DeviceConnectionError(
+                    f"Failed to read basic information: {e}"
+                ) from e
 
             basic_info["model"] = mapper.get_string_range(1, 8).strip()
             basic_info["serial"] = mapper.get_string_range(9, 4).strip()
             basic_info["sw_ver"] = mapper.get_uint16(13) / 100
 
-            data = await self.read_holding_registers(101, 40)
-            mapper = ModbusMapper(data, 101)
-        except Exception as e:
-            await self.close_connection()
-            raise DeviceConnectionError(f"Failed to read basic info: {e}") from e
+            try:
+                data = await self.read_holding_registers(101, 40)
+                mapper = ModbusMapper(data, 101)
+            except Exception as e:
+                raise DeviceConnectionError(
+                    f"Failed to read description & location: {e}"
+                ) from e
 
-        # Close the connection
-        await self.close_connection()
-        basic_info["description"] = mapper.get_string_range(101, 20)
-        basic_info["location"] = mapper.get_string_range(121, 20)
-        return BasicInfo(**basic_info)
+            basic_info["description"] = mapper.get_string_range(101, 20)
+            basic_info["location"] = mapper.get_string_range(121, 20)
+
+            return BasicInfo(**basic_info)
+
+        finally:
+            # Always ensure connection is closed
+            await self.close_connection()
 
     async def read_holding_registers(self, start, count, max_registers_per_read=120):
         """
