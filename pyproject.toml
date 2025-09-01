@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyiskra"
-version = "0.1.25"
+version = "0.1.26"
 description = "Python Iskra devices interface"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "GPL" }
+license = { text = "MIT" }
 authors = [
   { name = "Iskra d.o.o.", email = "razvoj.mis@iskra.eu" },
 ]
@@ -18,7 +18,7 @@ maintainers = [
 keywords = ["homeautomation", "iskra", "energy meter"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Home Automation",
@@ -33,7 +33,6 @@ dependencies = [
 Homepage = "https://github.com/Iskramis/pyiskra"
 Repository = "https://github.com/Iskramis/pyiskra"
 Documentation = "https://github.com/Iskramis/pyiskra"
-
 
 [tool.setuptools.packages.find]
 where = ["."]
