@@ -92,7 +92,7 @@ class WM(Device):
                 offset = 5400
             elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
                 offset = 5500
-            elif measurement_type == MeasurementType.MAX_MEASUREMENTS:
+            elif measurement_type == MeasurementType.MIN_MEASUREMENTS:
                 offset = 5600
 
             interval_stats = None
