@@ -127,7 +127,7 @@ class CounterType(Enum):
 
 
 class MeasurementType(Enum):
-    ACTUAL_MEASUREMENTS = "actual_measuremtns"
+    ACTUAL_MEASUREMENTS = "actual_measurements"
     AVERAGE_MEASUREMENTS = "average_measurements"
     MIN_MEASUREMENTS = "min_measurements"
     MAX_MEASUREMENTS = "max_measurements"
