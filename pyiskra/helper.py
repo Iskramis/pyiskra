@@ -162,9 +162,12 @@ class Counters:
         self.resettable = resettable if resettable is not None else []
 
 
-counter_units = ["", "Wh", "varh", "VAh"]
+counter_units = ("", "Wh", "varh", "VAh")
 
 def get_counter_units(counter_parameter):
+    # Check if counter is set to Ampere-squared hours
+    if counter_parameter & 0x20:
+        return "AAh"    
     # first 2 bits only
     return counter_units[counter_parameter & 0x3] 
 
