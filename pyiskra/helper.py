@@ -123,6 +123,8 @@ class CounterType(Enum):
     REACTIVE_EXPORT = "reactive_export"
     APPARENT_IMPORT = "apparent_import"
     APPARENT_EXPORT = "apparent_export"
+    SQUARED_IMPORT = "squared_import"
+    SQUARED_EXPORT = "squared_export"
     UNKNOWN = "unknown"
 
 
