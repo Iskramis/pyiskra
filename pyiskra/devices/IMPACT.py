@@ -16,7 +16,7 @@ from ..helper import (
     Total_Measurements,
     Counter,
     Counters,
-    counter_units,
+    get_counter_units,
     get_counter_direction,
     get_counter_type,
 )
@@ -245,13 +245,13 @@ class Impact(Device):
                 reverse_connection = True
 
             for counter in range(self.non_resettable_counters):
-                units = counter_units[
-                    non_resettable_settings_mapper.get_uint16(421 + 4 * counter)
-                ]
+                units = get_counter_units(non_resettable_settings_mapper.get_uint16(421 + 4 * counter))
+
                 direction = get_counter_direction(
                     non_resettable_settings_mapper.get_uint16(422 + 4 * counter),
                     reverse_connection,
                 )
+
                 counter_type = get_counter_type(direction, units)
                 non_resettable.append(
                     Counter(
@@ -263,14 +263,15 @@ class Impact(Device):
                 )
 
             for counter in range(self.resettable_counters):
-                units = counter_units[
-                    resettable_settings_mapper.get_uint16(437 + 4 * counter)
-                ]
+                units = get_counter_units(resettable_settings_mapper.get_uint16(437 + 4 * counter))
+
                 direction = get_counter_direction(
                     resettable_settings_mapper.get_uint16(438 + 4 * counter),
                     reverse_connection,
                 )
+
                 counter_type = get_counter_type(direction, units)
+                
                 resettable.append(
                     Counter(
                         data_mapper.get_float(2760 + 2 * counter),

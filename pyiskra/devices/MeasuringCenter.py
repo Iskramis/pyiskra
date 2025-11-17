@@ -15,7 +15,7 @@ from ..helper import (
     Total_Measurements,
     Counter,
     Counters,
-    counter_units,
+    get_counter_units,
     get_counter_direction,
     get_counter_type,
 )
@@ -215,16 +215,19 @@ class MeasuringCentre(Device):
                 reverse_connection = True
 
             for counter in range(self.resettable_counters):
-                units = counter_units[
-                    counter_settings_mapper.get_uint16(421 + 10 * counter) & 0x3
-                ]
+                units = get_counter_units(counter_settings_mapper.get_uint16(421 + 10 * counter))
+
                 direction = get_counter_direction(
                     counter_settings_mapper.get_uint16(422 + 10 * counter),
                     reverse_connection,
                 )
+
                 counter_type = get_counter_type(direction, units)
+
                 value = data_mapper.get_int32(406 + 2 * counter)
+
                 exponent = data_mapper.get_int16(401 + counter)
+
                 resettable.append(
                     Counter(
                         value * (10**exponent),
@@ -235,25 +238,25 @@ class MeasuringCentre(Device):
                 )
 
             for counter in range(self.non_resettable_counters):
-                units = counter_units[
-                    counter_settings_mapper.get_uint16(
-                        421 + 10 * (counter + self.resettable_counters)
-                    )
-                    & 0x3
-                ]
+                units = get_counter_units(counter_settings_mapper.get_uint16(421 + 10 * (counter + self.resettable_counters)))
+                
                 direction = get_counter_direction(
                     counter_settings_mapper.get_uint16(
                         422 + 10 * (counter + self.resettable_counters)
                     ),
                     reverse_connection,
                 )
+
                 counter_type = get_counter_type(direction, units)
+
                 value = data_mapper.get_int32(
                     406 + 2 * (counter + self.resettable_counters)
                 )
+
                 exponent = data_mapper.get_int16(
                     401 + (counter + self.resettable_counters)
                 )
+                
                 non_resettable.append(
                     Counter(
                         value * (10**exponent),

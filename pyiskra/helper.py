@@ -164,6 +164,10 @@ class Counters:
 
 counter_units = ["", "Wh", "varh", "VAh"]
 
+def get_counter_units(counter_parameter):
+    # first 2 bits only
+    return counter_units[counter_parameter & 0x3] 
+
 
 def get_counter_direction(quadrants, reverse_connection):
     quadrants = quadrants & 0x0F
