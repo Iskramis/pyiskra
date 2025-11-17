@@ -193,23 +193,27 @@ def get_counter_direction(quadrants, reverse_connection):
     return direction
 
 
-def get_counter_type(direction, units):
-    if direction == "import":
-        if units == "Wh":
-            return CounterType.ACTIVE_IMPORT
-        elif units == "varh":
-            return CounterType.REACTIVE_IMPORT
-        elif units == "VAh":
-            return CounterType.APPARENT_IMPORT
-    elif direction == "export":
-        if units == "Wh":
-            return CounterType.ACTIVE_EXPORT
-        elif units == "varh":
-            return CounterType.REACTIVE_EXPORT
-        elif units == "VAh":
-            return CounterType.APPARENT_EXPORT
+COUNTER_UNITS = {
+    ("import", "Wh"): CounterType.ACTIVE_IMPORT,
+    ("import", "varh"): CounterType.REACTIVE_IMPORT,
+    ("import", "VAh"): CounterType.APPARENT_IMPORT,
+    ("import", "AAh"): CounterType.SQUARED_IMPORT,
+    ("export", "Wh"): CounterType.ACTIVE_EXPORT,
+    ("export", "varh"): CounterType.REACTIVE_EXPORT,
+    ("export", "VAh"): CounterType.APPARENT_EXPORT,
+    ("export", "AAh"): CounterType.SQUARED_EXPORT,
+}
 
-    return CounterType.UNKNOWN
+def get_counter_type(direction: str, units: str) -> CounterType:
+    """
+    Get the CounterType based on direction and units.
+    Args:
+        direction (str): The direction of the counter (e.g., "import", "export").
+        units (str): The units of the counter (e.g., "Wh", "varh", "VAh", "AAh").
+    Returns:
+        CounterType: The corresponding CounterType enum value.
+    """
+    return COUNTER_UNITS.get((direction, units), CounterType.UNKNOWN)
 
 
 class ModbusMapper:
