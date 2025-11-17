@@ -167,11 +167,13 @@ class Counters:
 counter_units = ("", "Wh", "varh", "VAh")
 
 def get_counter_units(counter_parameter):
+    units = counter_parameter & 0x3
     # Check if counter is set to Ampere-squared hours
-    if counter_parameter & 0x20:
+    # Units must be 0 since 0x21-0x23 is reserved for Individual Phases
+    if counter_parameter & 0x20 and units == 0:
         return "AAh"    
     # first 2 bits only
-    return counter_units[counter_parameter & 0x3] 
+    return counter_units[units] 
 
 
 def get_counter_direction(quadrants, reverse_connection):
