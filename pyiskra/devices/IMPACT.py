@@ -203,10 +203,15 @@ class Impact(Device):
 
     async def get_counters(self):
         """
-        Retrieves counters from the device.
-
+        Retrieve counters from the device and return them as a Counters container.
+        
+        When using a RestAPI adapter, counters are fetched via the adapter. When using a Modbus adapter, the method reads device registers (opening and closing the connection if needed) and decodes non-resettable and resettable counters.
+        
         Returns:
-            dict: A dictionary containing the counters.
+            Counters: An object with two lists:
+                - non_resettable: list of Counter objects for non-resettable counters.
+                - resettable: list of Counter objects for resettable counters.
+            Each Counter contains the counter value, units, direction, and counter type.
         """
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")

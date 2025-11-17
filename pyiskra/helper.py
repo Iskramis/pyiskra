@@ -166,10 +166,29 @@ counter_units = ["", "Wh", "varh", "VAh"]
 
 def get_counter_units(counter_parameter):
     # first 2 bits only
+    """
+    Map the lower two bits of a counter parameter to its corresponding unit suffix.
+    
+    Parameters:
+        counter_parameter (int): Integer whose lower two bits (bits 0-1) select the unit.
+    
+    Returns:
+        str: Unit suffix selected by the lower two bits: "" (index 0), "Wh" (index 1), "varh" (index 2), or "VAh" (index 3).
+    """
     return counter_units[counter_parameter & 0x3] 
 
 
 def get_counter_direction(quadrants, reverse_connection):
+    """
+    Determine the counter direction from a 4-bit quadrant mask, optionally swapping import and export for reversed connections.
+    
+    Parameters:
+        quadrants (int): Bitmask whose lower 4 bits indicate the measurement quadrant configuration.
+        reverse_connection (bool): If True, swap "import" and "export" results to account for reversed wiring.
+    
+    Returns:
+        str|int: `"export"` when quadrants indicate export (values 9 or 3), `"import"` when they indicate import (6 or 12), `"bidirectional"` when both (15), or `0` if the quadrant pattern is unrecognized.
+    """
     quadrants = quadrants & 0x0F
     direction = 0
     if quadrants == 9 or quadrants == 3:

@@ -202,10 +202,15 @@ class WM(Device):
 
     async def get_counters(self):
         """
-        Retrieves counters from the device.
-
+        Retrieve the device's resettable and non-resettable energy counters.
+        
+        When using a RestAPI adapter, delegates to the adapter implementation. When using a Modbus adapter, reads device registers to construct counters including units, direction, counter type, and scaled value; the method may open and close the Modbus connection if one is not already open.
+        
         Returns:
-            dict: A dictionary containing the counters.
+            Counters: An object containing two lists:
+                - non_resettable: list of Counter objects for non-resettable counters.
+                - resettable: list of Counter objects for resettable counters.
+            Each Counter is populated with the counter value (scaled by the device exponent), units, direction, and counter_type.
         """
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")

@@ -180,10 +180,12 @@ class MeasuringCentre(Device):
 
     async def get_counters(self):
         """
-        Retrieves counters from the device.
-
+        Retrieve the device's counters grouped into non-resettable and resettable sets.
+        
+        If the configured adapter exposes counters directly, the adapter's result is returned; for Modbus the method reads device registers to build Counter objects and may open and close the connection as needed.
+        
         Returns:
-            dict: A dictionary containing the counters.
+            Counters: An object containing two lists — `non_resettable` and `resettable` — of Counter instances with resolved value, units, direction, and type.
         """
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
