@@ -237,7 +237,9 @@ class WM(Device):
                 reverse_connection = True
 
             for counter in range(self.resettable_counters):
-                units = get_counter_units(counter_settings_mapper.get_uint16(421 + 10 * counter) )
+                units = get_counter_units(
+                    counter_settings_mapper.get_uint16(421 + 10 * counter)
+                )
 
                 direction = get_counter_direction(
                     counter_settings_mapper.get_uint16(422 + 10 * counter),
@@ -260,8 +262,12 @@ class WM(Device):
                 )
 
             for counter in range(self.non_resettable_counters):
-                units = get_counter_units(counter_settings_mapper.get_uint16 421 + 10 * (counter + self.resettable_counters))
-        
+                units = get_counter_units(
+                    counter_settings_mapper.get_uint16(
+                        421 + 10 * (counter + self.resettable_counters)
+                    )
+                )
+
                 direction = get_counter_direction(
                     counter_settings_mapper.get_uint16(
                         422 + 10 * (counter + self.resettable_counters)
