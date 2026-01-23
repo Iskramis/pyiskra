@@ -116,6 +116,182 @@ class Measurements:
         self.interval_stats = interval_stats
 
 
+class Consumed_Energy:
+    total:Measurement
+    timestamp_total: Measurement
+    last_month: Measurement
+    timestamp_last_month: Measurement
+    two_months_ago:Measurement
+    timestamp_two_months_ago: Measurement
+    last_year: Measurement
+    timestamp_last_year: Measurement
+    two_years_ago: Measurement
+    timestamp_two_years_ago: Measurement
+    this_month: Measurement
+    previous_month: Measurement
+    this_year: Measurement
+    previous_year: Measurement
+
+    def __init__(
+        self,
+        total=None,
+        timestamp_total=None,
+        last_month=None,
+        timestamp_last_month=None,
+        two_months_ago=None,
+        timestamp_two_months_ago=None,
+        last_year=None,
+        timestamp_last_year=None,
+        two_years_ago=None,
+        timestamp_two_years_ago=None,
+        this_month=None,
+        previous_month=None,
+        this_year=None,
+        previous_year=None,
+
+    ):
+        self.total = total
+        self.timestamp_total = timestamp_total
+        self.last_month = last_month
+        self.timestamp_last_month = timestamp_last_month
+        self.two_months_ago = two_months_ago
+        self.timestamp_two_months_ago = timestamp_two_months_ago
+        self.last_year = last_year
+        self.timestamp_last_year = timestamp_last_year
+        self.two_years_ago = two_years_ago
+        self.timestamp_two_years_ago = timestamp_two_years_ago
+        self.this_month = this_month
+        self.previous_month = previous_month
+        self.this_year = this_year
+        self.previous_year = previous_year
+
+class Excess_Power:
+    excess_power_limit: Measurement
+    excess_power_this_month: Measurement
+    excess_power_previous_month: Measurement
+
+    def __init__(
+        self,
+        excess_power_limit=None,
+        excess_power_this_month=None,
+        excess_power_previous_month=None,
+    ):
+        self.excess_power_limit = excess_power_limit
+        self.excess_power_this_month = excess_power_this_month
+        self.excess_power_previous_month = excess_power_previous_month
+
+
+class Max_15min_Power:
+    max_15min_power_since_reset: Measurement
+    timestamp_since_reset: Measurement
+    max_15min_power_this_month: Measurement
+    timestamp_this_month: Measurement
+    max_15min_power_previous_month: Measurement
+    timestamp_previous_month: Measurement
+    max_15min_power_this_year: Measurement
+    timestamp_this_year: Measurement
+    max_15min_power_previous_year: Measurement
+    timestamp_previous_year: Measurement
+    reset_timestamp: Measurement
+
+    def __init__(
+        self,
+        max_15min_power_since_reset=None,
+        timestamp_since_reset=None,
+        max_15min_power_this_month=None,
+        timestamp_this_month=None,
+        max_15min_power_previous_month=None,
+        timestamp_previous_month=None,
+        max_15min_power_this_year=None,
+        timestamp_this_year=None,
+        max_15min_power_previous_year=None,
+        timestamp_previous_year=None,
+        reset_timestamp=None,
+    ):
+        self.max_15min_power_since_reset = max_15min_power_since_reset
+        self.timestamp_since_reset = timestamp_since_reset
+        self.max_15min_power_this_month = max_15min_power_this_month
+        self.timestamp_this_month = timestamp_this_month
+        self.max_15min_power_previous_month = max_15min_power_previous_month
+        self.timestamp_previous_month = timestamp_previous_month
+        self.max_15min_power_this_year = max_15min_power_this_year
+        self.timestamp_this_year = timestamp_this_year
+        self.max_15min_power_previous_year = max_15min_power_previous_year
+        self.timestamp_previous_year = timestamp_previous_year
+        self.reset_timestamp = reset_timestamp
+        
+class Active_Power_Measurements:
+    actual_value: Measurement
+    thermal_function: Measurement
+    predicted_15min: Measurement
+    predicted_15min_active_limit: Measurement
+    last_15min: Measurement
+    max_15min_since_reset: Measurement
+    active_energy_total: Measurement
+    timestamp: Measurement
+
+    def __init__(
+        self,
+        actual_value=None,
+        thermal_function=None,
+        predicted_15min=None,
+        predicted_15min_active_limit=None,
+        last_15min=None,
+        max_15min_since_reset=None,
+        active_energy_total=None,
+        timestamp=None,
+    ):
+        self.actual_value = actual_value
+        self.thermal_function = thermal_function
+        self.predicted_15min = predicted_15min
+        self.predicted_15min_active_limit = predicted_15min_active_limit
+        self.last_15min = last_15min
+        self.max_15min_since_reset = max_15min_since_reset
+        self.active_energy_total = active_energy_total
+        self.timestamp = timestamp
+
+class Time_Block:
+    consumed_energy: Consumed_Energy
+    excess_power: Excess_Power
+    max_15min_Power: Max_15min_Power
+
+    def __init__(
+        self,
+        consumed_energy=None,
+        excess_power=None,
+        max_15min_Power=None,
+    ):
+        self.consumed_energy = consumed_energy
+        self.excess_power = excess_power
+        self.max_15min_Power = max_15min_Power
+
+class Time_Blocks_Measurements:
+    time_blocks: list[Time_Block]
+    active_power_measurements_import: Active_Power_Measurements
+    active_power_measurements_export: Active_Power_Measurements
+    active_block_index: Measurement
+    time_to_end_interval: Measurement
+
+    def __init__(
+        self,
+        time_blocks=None,
+        active_power_measurements_import=None,
+        active_power_measurements_export=None,
+        active_block_index=None,
+        time_to_end_interval=None,
+    ):
+        self.timestamp = time.time()
+
+        self.time_blocks = time_blocks
+        self.active_power_measurements_import = active_power_measurements_import
+        self.active_power_measurements_export = active_power_measurements_export
+        self.active_block_index = active_block_index
+        self.time_to_end_interval = time_to_end_interval
+
+    @property
+    def active_time_block(self):
+        return self.timeBlocks[self.active_block_index]
+
 class CounterType(Enum):
     ACTIVE_IMPORT = "active_import"
     ACTIVE_EXPORT = "active_export"

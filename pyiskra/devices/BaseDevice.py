@@ -32,6 +32,9 @@ class Device:
     measurements = None
     counters = None
     phases = 0
+    time_block_count = 0
+    current_nominal = 0
+    voltage_nominal = 0
     non_resettable_counters = 0
     resettable_counters = 0
     fw_version = None
@@ -127,6 +130,7 @@ class Device:
                 self.phases = parameters["phases"]
                 self.resettable_counters = parameters["resettable_counters"]
                 self.non_resettable_counters = parameters["non_resettable_counters"]
+                self.time_block_count = parameters["time_block_count"]
                 break
 
         return basic_info

@@ -9,6 +9,10 @@ from ..helper import (
     Measurement,
     Phase_Measurements,
     Total_Measurements,
+    Time_Block,
+    Consumed_Energy,
+    Excess_Power,
+    Max_15min_Power,
     Counters,
     Counter,
     get_counter_type,
@@ -397,3 +401,159 @@ class RestAPI(Adapter):
             location=json_data.get("location"),
             sw_ver=json_data.get("sw_ver"),
         )
+    
+    async def get_tb_measurements(self):
+        """
+        Get the time blocks measurements.
+
+        Returns:
+            tuple: A tuple containing the Time block active energy, Excess power, Max 15min power, Active power measurements...
+
+        Raises:
+            ConnectionError: If an error occurs while connecting to the RestAPI.
+        """
+        json_data = None
+        if self.device_index is not None and self.device_index >= 0:
+            json_data = await self.get_resource(
+                "api/tb_mesurement/" + str(self.device_index)
+            )
+            json_data = json_data.get("tb_measurements", {})
+            
+            time_blocks = []
+
+            consumed_energy = []
+            excess_power = []
+            max_15min_power = []
+
+            for block in json_data.get("Blocks", []):
+                total=None
+                last_month=None
+                two_months_ago=None
+                last_year=None
+                two_years_ago=None
+                this_month=None
+                previous_month=None
+                previous_year=None
+                excess_power_limit=None
+                excess_power_this_month=None
+                excess_power_previous_month=None
+                max_15min_power_since_reset=None
+                max_15min_power_this_month=None
+                max_15min_power_previous_month=None
+                max_15min_power_this_year=None
+                max_15min_power_previous_year=None
+            
+            temp = block.get("TOT", block.get("total", None))
+            if temp:
+                total = self.parse_measurement(temp)
+
+            temp = block.get("LM", block.get("last_month", None))
+            if temp:
+                last_month = self.parse_measurement(temp)
+
+            temp = block.get("2MA", block.get("two_months_ago", None))
+            if temp:
+                two_months_ago = self.parse_measurement(temp)
+
+            temp = block.get("LY", block.get("last_year", None))
+            if temp:
+                last_year = self.parse_measurement(temp)
+
+            temp = block.get("2YA", block.get("two_years_ago", None))
+            if temp:
+                two_years_ago = self.parse_measurement(temp)
+
+            temp = block.get("TM", block.get("this_month", None))
+            if temp:
+                this_month = self.parse_measurement(temp)
+
+            temp = block.get("PM", block.get("previous_month", None))
+            if temp:
+                previous_month = self.parse_measurement(temp)
+
+            temp = block.get("TY", block.get("this_year", None))
+            if temp:
+                this_year = self.parse_measurement(temp)
+
+            temp = block.get("PY", block.get("previous_year", None))
+            if temp:
+                previous_year = self.parse_measurement(temp)
+
+            consumed_energy.append(
+                Consumed_Energy(
+                    total,
+                    last_month,
+                    two_months_ago,
+                    last_year,
+                    two_years_ago,
+                    this_month,
+                    previous_month,
+                    this_year,
+                    previous_year,
+                    )
+            )
+
+            temp = block.get("EPSL", block.get("excess_power_limit", None))
+            if temp:
+                excess_power_limit = self.parse_measurement(temp)
+            
+            temp = block.get("EPTM", block.get("excess_power_this_month", None))
+            if temp:
+                excess_power_this_month = self.parse_measurement(temp)
+
+            temp = block.get("EPPM", block.get("excess_power_previous_month", None))
+            if temp:
+                excess_power_previous_month = self.parse_measurement(temp)
+
+            excess_power.append(
+                Excess_Power(
+                    excess_power_limit,
+                    excess_power_this_month,
+                    excess_power_previous_month,
+                )
+            )
+
+            temp = block.get("MAXSR", block.get("max_15min_power_since_reset", None))
+            if temp:
+                max_15min_power_since_reset = self.parse_measurement(temp)
+
+            temp = block.get("MAXTM", block.get("max_15min_power_this_month", None))
+            if temp:
+                max_15min_power_this_month = self.parse_measurement(temp)
+
+            temp = block.get("MAXPM", block.get("max_15min_power_previous_month", None))
+            if temp:
+                max_15min_power_previous_month = self.parse_measurement(temp)
+
+            temp = block.get("MAXTY", block.get("max_15min_power_this_year", None))
+            if temp:
+                max_15min_power_this_year = self.parse_measurement(temp)
+
+            temp = block.get("MAXPY", block.get("max_15min_power_previous_year", None))
+            if temp:
+                max_15min_power_previous_year = self.parse_measurement(temp)
+
+            max_15min_power.append(
+                Max_15min_Power(
+                    max_15min_power_since_reset,
+                    max_15min_power_this_month,
+                    max_15min_power_previous_month,
+                    max_15min_power_this_year,
+                    max_15min_power_previous_year,
+                )
+            )
+
+            time_blocks.append(
+                Time_Block(
+                    consumed_energy,
+                    excess_power,
+                    max_15min_power,
+                )
+            )
+        
+            return Measurement(
+                time_blocks=time_blocks
+            )
+
+        return None
+            
