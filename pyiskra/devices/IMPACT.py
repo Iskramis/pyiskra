@@ -51,7 +51,8 @@ class Impact(Device):
     supports_measurements = True
     supports_counters = True
     supports_interval_measurements = True
-    supports_iMC_functions = False 
+    supports_iMC_functions = True
+    supports_time_blocks = True
 
     async def init(self):
         """
@@ -60,6 +61,8 @@ class Impact(Device):
         This method retrieves basic information, updates the status, and logs a success message.
         """
         await self.get_basic_info()
+        # update "supports_iMC_functions" status flag
+        await self.check_iMC_functions_support()
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
@@ -315,12 +318,12 @@ class Impact(Device):
 
             self.measurements = await self.get_measurements()
             self.counters = await self.get_counters()
-            # update "supports_iMC_functions" status flag
-            await self.update_iMC_function_status()
             # Get nominal power
             self.nominal_power = await self.get_used_current_and_voltage()
             # Time blocks measurements
-            self.Time_Blocks_Measurements = await self.get_Time_Blocks_Measurements()
+            self.supports_time_blocks = await self.check_time_blocks_support()
+            if (self.supports_time_blocks):
+                self.Time_Blocks_Measurements = await self.get_Time_Blocks_Measurements()
 
             # if the adapter is Modbus, close the connection
             if isinstance(self.adapter, Modbus):
@@ -356,15 +359,28 @@ class Impact(Device):
         data_mapper = ModbusMapper(cnf_data, 22514)
         return data_mapper
 
-    async def update_iMC_function_status(self):
+    async def check_iMC_functions_support(self):
         """
         Get iMC functions status bit
         """
         mapper = await self.get_config_register_value()
         cnf_data = mapper.get_uint16(22514)
         iMC_bit = (cnf_data >> 4) & 1
-        Impact.supports_iMC_functions = bool(iMC_bit)
+        self.supports_iMC_functions = bool(iMC_bit)
         return bool(iMC_bit)
+    
+    async def check_time_blocks_support(self):
+        """
+        Check SW version for time blocks support
+        """
+        cnf_data = await self.adapter.read_input_registers(13, 1)
+        mapper = ModbusMapper(cnf_data, 13)
+        cnf_data = mapper.get_uint16(13)
+        sw_version = cnf_data/100
+        if sw_version < 1 or sw_version > 1.5:
+            return True
+        else:
+            return False
 
     async def get_Time_Blocks_Measurements(self):
         """

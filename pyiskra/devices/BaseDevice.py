@@ -29,6 +29,8 @@ class Device:
     is_gateway = False
     supports_measurements = False
     supports_counters = False
+    supports_iMC_functions = False
+    supports_time_blocks = False
     measurements = None
     counters = None
     phases = 0
