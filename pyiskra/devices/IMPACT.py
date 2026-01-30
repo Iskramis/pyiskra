@@ -62,7 +62,14 @@ class Impact(Device):
         """
         await self.get_basic_info()
         # update "supports_iMC_functions" status flag
-        await self.check_iMC_functions_support()
+        if isinstance(self.adapter, Modbus):
+            await self.check_iMC_functions_support()
+            # Get nominal power
+            self.nominal_power = await self.get_used_current_and_voltage()
+            # check time blocks support
+            self.supports_time_blocks = await self.check_time_blocks_support()  
+        elif isinstance(self.adapter, RestAPI):
+            self.supports_iMC_functions = await self.adapter.check_time_blocks_support()
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
@@ -318,12 +325,8 @@ class Impact(Device):
 
             self.measurements = await self.get_measurements()
             self.counters = await self.get_counters()
-            # Get nominal power
-            self.nominal_power = await self.get_used_current_and_voltage()
             # Time blocks measurements
-            self.supports_time_blocks = await self.check_time_blocks_support()
-            if (self.supports_time_blocks):
-                self.Time_Blocks_Measurements = await self.get_Time_Blocks_Measurements()
+            self.time_blocks_measurements = await self.get_time_blocks_measurements()
 
             # if the adapter is Modbus, close the connection
             if isinstance(self.adapter, Modbus):
@@ -382,7 +385,21 @@ class Impact(Device):
         else:
             return False
 
-    async def get_Time_Blocks_Measurements(self):
+    async def check_time_blocks_support(self):
+        """
+        Get version of meter software
+        """
+        log.debug(f"Get meter software version.")
+        cnf_data = await self.adapter.read_input_registers(13, 1)
+        mapper = ModbusMapper(cnf_data, 13)
+        cnf_data = mapper.get_uint16(13)
+        sw_version = cnf_data / 100
+        if sw_version < 1 or sw_version > 1.5:
+            return True
+        else:
+            return False
+
+    async def get_time_blocks_measurements(self):
         """
         Retrieves time block measurements from the device.
 
@@ -392,9 +409,11 @@ class Impact(Device):
 
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
-            return await self.adapter.get_Time_Blocks_Measurements()
+            return await self.adapter.get_tb_measurements()
         
         elif isinstance(self.adapter, Modbus):
+            if (not self.supports_time_blocks):
+                return None
             # Open the connection
             handle_connection = not self.adapter.connected
             if handle_connection:

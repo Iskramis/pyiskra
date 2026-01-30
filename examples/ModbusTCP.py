@@ -51,7 +51,7 @@ async def main():
 
         print()
         if device.supports_iMC_functions:
-            for index, time_block in enumerate(device.Time_Blocks_Measurements.time_blocks): 
+            for index, time_block in enumerate(device.time_blocks_measurements.time_blocks): 
                 block = time_block.consumed_energy[index]
                 print(f"Time block {index+1} - This Month: {block.this_month.value}{block.this_month.units}") 
                 print(f"Time block {index+1} - Previous Month: {block.previous_month.value}{block.previous_month.units}") 
@@ -64,14 +64,14 @@ async def main():
                 print(f"Time block {index+1} - 2 Years ago Capture: {block.two_years_ago.value}{block.two_years_ago.units}, timestamp: {block.timestamp_two_years_ago.value}")
                 print()
 
-            for index, time_block in enumerate(device.Time_Blocks_Measurements.time_blocks):
+            for index, time_block in enumerate(device.time_blocks_measurements.time_blocks):
                 block = time_block.excess_power[index]
                 print(
                     f"Time block {index+1} Excess Power - Total: {block.excess_power_limit.value}{block.excess_power_limit.units}, This Month: {block.excess_power_this_month.value}{block.excess_power_this_month.units}, Previous Month: {block.excess_power_previous_month.value}{block.excess_power_previous_month.units}"
                 )
                 print()
 
-            for index, time_block in enumerate(device.Time_Blocks_Measurements.time_blocks):
+            for index, time_block in enumerate(device.time_blocks_measurements.time_blocks):
                 block = time_block.max_15min_Power[index]
                 print(f"Time block {index+1} - Since reset: {block.max_15min_power_since_reset.value}{block.max_15min_power_since_reset.units}, timestamp: {block.timestamp_since_reset.value}")
                 print(f"Time block {index+1} - This Month: {block.max_15min_power_this_month.value}{block.max_15min_power_this_month.units}, timestamp: {block.timestamp_this_month.value}") 
@@ -81,7 +81,7 @@ async def main():
                 print(f"Time block {index+1} - Reset timestamp: {block.reset_timestamp.value}{block.reset_timestamp.units}")
                 print()
 
-            imports = device.Time_Blocks_Measurements.active_power_measurements_import
+            imports = device.time_blocks_measurements.active_power_measurements_import
             print(f"Import(+) - Actual value: {imports.actual_value.value}{imports.actual_value.units}")
             print(f"Import(+) - Thermal function: {imports.thermal_function.value}{imports.thermal_function.units}")  
             print(f"Import(+) - Predicted 15min: {imports.predicted_15min.value}{imports.predicted_15min.units}") 
@@ -92,7 +92,7 @@ async def main():
             print(f"Import(+) - Total: {imports.active_energy_total.value}{imports.active_energy_total.units}") 
             print()
 
-            exports = device.Time_Blocks_Measurements.active_power_measurements_export
+            exports = device.time_blocks_measurements.active_power_measurements_export
             print(f"Export(-) - Actual value: {exports.actual_value.value}{exports.actual_value.units}")
             print(f"Export(-) - Thermal function: {exports.thermal_function.value}{exports.thermal_function.units}")  
             print(f"Export(-) - Predicted 15min: {exports.predicted_15min.value}{exports.predicted_15min.units}") 
@@ -102,8 +102,8 @@ async def main():
             print(f"Export(-) - Total: {exports.active_energy_total.value}{exports.active_energy_total.units}")
             print()
 
-            print(f"Active block: {device.Time_Blocks_Measurements.active_block_index.value}{device.Time_Blocks_Measurements.active_block_index.units}")
-            print(f"Time to end interval: {device.Time_Blocks_Measurements.time_to_end_interval.value}{device.Time_Blocks_Measurements.time_to_end_interval.units}") 
+            print(f"Active block: {device.time_blocks_measurements.active_block_index.value}{device.time_blocks_measurements.active_block_index.units}")
+            print(f"Time to end interval: {device.time_blocks_measurements.time_to_end_interval.value}{device.time_blocks_measurements.time_to_end_interval.units}") 
             print()
 
 asyncio.run(main())
