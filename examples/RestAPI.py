@@ -3,7 +3,7 @@ from pyiskra.devices import Device
 from pyiskra.adapters import RestAPI
 
 
-device_ip = "10.34.94.12"
+device_ip = "10.34.94.20"
 device_auth = {"username": "admin", "password": "iskra"}
 
 
@@ -45,6 +45,25 @@ async def main():
                 print(
                     f"Resettable counter, Value: {counter.value} {counter.units}, Direction: {counter.direction}"
                 )
+            print()
 
+        if device.supports_iMC_functions:
+            for index, time_block in enumerate(device.time_blocks_measurements.time_blocks): 
+                block = time_block.consumed_energy[index]
+                print(f"Time block {index+1} - This Month: {block.this_month.value}{block.this_month.units}") 
+                print(f"Time block {index+1} - Previous Month: {block.previous_month.value}{block.previous_month.units}") 
+                print(f"Time block {index+1} - This Year: {block.this_year.value}{block.this_year.units}") 
+                print(f"Time block {index+1} - Previous Year: {block.previous_year.value}{block.previous_year.units}") 
+                print()
+
+            for index, time_block in enumerate(device.time_blocks_measurements.time_blocks):
+                block = time_block.excess_power[index]
+                print(
+                        f"Time block {index+1} Excess Power - This Month: {block.excess_power_this_month.value}{block.excess_power_this_month.units}, Previous Month: {block.excess_power_previous_month.value}{block.excess_power_previous_month.units}"
+                )
+                print()
+
+            print(f"Active block: {device.time_blocks_measurements.active_block_index.value}{device.time_blocks_measurements.active_block_index.units}")
+            print()
 
 asyncio.run(main())

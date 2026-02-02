@@ -34,10 +34,10 @@ class MeasuringCentre(Device):
     """
 
     DEVICE_PARAMETERS = {
-        "MT": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
-        "iMT": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
-        "MC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
-        "iMC": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 0},
+        "MT": {"phases": 3, "resettable_counters": 4},
+        "iMT": {"phases": 3, "resettable_counters": 4},
+        "MC": {"phases": 3, "resettable_counters": 4},
+        "iMC": {"phases": 3, "resettable_counters": 4},
         # Add more models as needed
     }
 

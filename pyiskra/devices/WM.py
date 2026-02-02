@@ -35,9 +35,9 @@ class WM(Device):
     """
 
     DEVICE_PARAMETERS = {
-        "WM3M4": {"phases": 3, "resettable_counters": 0, "non_resettable_counters": 2},
+        "WM3M4": {"phases": 3, "non_resettable_counters": 2},
         "WM3": {"phases": 3, "resettable_counters": 4, "non_resettable_counters": 4},
-        "WM1": {"phases": 1, "resettable_counters": 4, "non_resettable_counters": 0},
+        "WM1": {"phases": 1, "resettable_counters": 4},
         # Add more models as needed
     }
 
