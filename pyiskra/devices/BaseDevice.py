@@ -130,9 +130,9 @@ class Device:
         for model_pattern, parameters in self.DEVICE_PARAMETERS.items():
             if re.match(model_pattern, self.model):
                 self.phases = parameters["phases"]
-                self.resettable_counters = parameters["resettable_counters"]
-                self.non_resettable_counters = parameters["non_resettable_counters"]
-                self.time_block_count = parameters["time_block_count"]
+                self.resettable_counters = parameters.get("resettable_counters", 0)
+                self.non_resettable_counters = parameters.get("non_resettable_counters", 0)
+                self.time_block_count = parameters.get("time_block_count", 0)
                 break
 
         return basic_info

@@ -43,16 +43,14 @@ class Impact(Device):
 
     DEVICE_PARAMETERS = {
         "IE38": {"phases": 3, "resettable_counters": 16, "non_resettable_counters": 4, "time_block_count": 5},
-        "IE35": {"phases": 3, "resettable_counters": 16, "non_resettable_counters": 4, "time_block_count": 0},
-        "IE14": {"phases": 1, "resettable_counters": 8, "non_resettable_counters": 4, "time_block_count": 0},
+        "IE35": {"phases": 3, "resettable_counters": 16, "non_resettable_counters": 4},
+        "IE14": {"phases": 1, "resettable_counters": 8, "non_resettable_counters": 4},
         # Add more models as needed
     }
 
     supports_measurements = True
     supports_counters = True
     supports_interval_measurements = True
-    supports_iMC_functions = True
-    supports_time_blocks = True
 
     async def init(self):
         """
@@ -63,7 +61,7 @@ class Impact(Device):
         await self.get_basic_info()
         # update "supports_iMC_functions" status flag
         if isinstance(self.adapter, Modbus):
-            await self.check_iMC_functions_support()
+            self.supports_iMC_functions = await self.check_iMC_functions_support()
             # Get nominal power
             self.nominal_power = await self.get_used_current_and_voltage()
             # check time blocks support
@@ -369,7 +367,6 @@ class Impact(Device):
         mapper = await self.get_config_register_value()
         cnf_data = mapper.get_uint16(22514)
         iMC_bit = (cnf_data >> 4) & 1
-        self.supports_iMC_functions = bool(iMC_bit)
         return bool(iMC_bit)
     
     async def check_time_blocks_support(self):
@@ -438,55 +435,55 @@ class Impact(Device):
             if handle_connection:
                 await self.adapter.close_connection()
 
-
             time_blocks = []
-
             consumed_energy = []
             excess_power = []
             max_15min_power = []
 
+            exponent = mapper.get_int16(6762)
+
             for block in range (self.time_block_count):
-                total =  Measurement(mapper.get_t5(6786 + 42 * block)/1000,
-                    "kWh",
+                total =  Measurement(mapper.get_uint32(6786 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 timestamp_total =  Measurement(capture_timestamp_mapper.get_timestamp(4901),
                 "",
                 )
-                last_month =  Measurement(mapper.get_t5(6788 + 42 * block)/1000,
-                    "kWh",
+                last_month =  Measurement(mapper.get_uint32(6788 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 timestamp_last_month =  Measurement(mapper.get_timestamp(6766),
                 "",
                 )
-                two_months_ago =  Measurement(mapper.get_t5(6790 + 42 * block)/1000,
-                    "kWh",
+                two_months_ago =  Measurement(mapper.get_uint32(6790 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 timestamp_two_months_ago =  Measurement(mapper.get_timestamp(6768),
                 "",
                 )
-                last_year =  Measurement(mapper.get_t5(6792 + 42 * block)/1000,
-                    "kWh",
+                last_year =  Measurement(mapper.get_uint32(6792 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 timestamp_last_year =  Measurement(mapper.get_timestamp(6770),
                 "",
                 )
-                two_years_ago =  Measurement(mapper.get_t5(6794 + 42 * block)/1000,
-                    "kWh",
+                two_years_ago =  Measurement(mapper.get_uint32(6794 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 timestamp_two_years_ago =  Measurement(mapper.get_timestamp(6772),
                 "",
                 )
-                this_month =  Measurement(mapper.get_t5(6796 + 42 * block)/1000,
-                    "kWh",
+                this_month =  Measurement(mapper.get_uint32(6796 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
-                previous_month =  Measurement(mapper.get_t5(6798 + 42 * block)/1000,
-                    "kWh",
+                previous_month =  Measurement(mapper.get_uint32(6798 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
-                this_year =  Measurement(mapper.get_t5(6800 + 42 * block)/1000,
-                    "kWh",
+                this_year =  Measurement(mapper.get_uint32(6800 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
-                previous_year =  Measurement(mapper.get_t5(6802 + 42 * block)/1000,
-                    "kWh",
+                previous_year =  Measurement(mapper.get_uint32(6802 + 42 * block)* (10**exponent),
+                    "Wh",
                 )
                 consumed_energy.append(
                     Consumed_Energy(
@@ -509,11 +506,11 @@ class Impact(Device):
                 excess_power_limit =  Measurement(round((limits__mapper.get_uint16(990 + 1 * block) * (self.nominal_power/1000))/10), 
                     "W",
                 )
-                excess_power_this_month =  Measurement(mapper.get_t5(6804 + 42 * block)/1000,
-                    "kW",
+                excess_power_this_month =  Measurement(mapper.get_t5(6804 + 42 * block),
+                    "W",
                 )
-                excess_power_previous_month =  Measurement(mapper.get_t5(6806 + 42 * block)/1000,
-                    "kW",
+                excess_power_previous_month =  Measurement(mapper.get_t5(6806 + 42 * block),
+                    "W",
                 )
                 excess_power.append(
                     Excess_Power(
@@ -522,32 +519,32 @@ class Impact(Device):
                         excess_power_previous_month,
                     )
                 )
-                max_15min_power_since_reset =  Measurement(mapper.get_t5(6808 + 42 * block)/1000,
-                    "kW",
+                max_15min_power_since_reset =  Measurement(mapper.get_t5(6808 + 42 * block),
+                    "W",
                 )
                 timestamp_since_reset =  Measurement(mapper.get_timestamp(6810 + 42 * block),
                 "",
                 )
-                max_15min_power_this_month =  Measurement(mapper.get_t5(6812 + 42 * block)/1000,
-                    "kW",
+                max_15min_power_this_month =  Measurement(mapper.get_t5(6812 + 42 * block),
+                    "W",
                 )
                 timestamp_this_month =  Measurement(mapper.get_timestamp(6814 + 42 * block),
                 "",
                 )
-                max_15min_power_previous_month =  Measurement(mapper.get_t5(6816 + 42 * block)/1000,
-                    "kW",
+                max_15min_power_previous_month =  Measurement(mapper.get_t5(6816 + 42 * block),
+                    "W",
                 )
                 timestamp_previous_month =  Measurement(mapper.get_timestamp(6818 + 42 * block),
                 "",
                 )
-                max_15min_power_this_year =  Measurement(mapper.get_t5(6820 + 42 * block)/1000,
-                    "kW",
+                max_15min_power_this_year =  Measurement(mapper.get_t5(6820 + 42 * block),
+                    "W",
                 )
                 timestamp_this_year =  Measurement(mapper.get_timestamp(6822 + 42 * block),
                 "",
                 )
-                max_15min_power_previous_year =  Measurement(mapper.get_t5(6824 + 42 * block)/1000,
-                    "kW",
+                max_15min_power_previous_year =  Measurement(mapper.get_t5(6824 + 42 * block),
+                    "W",
                 )
                 timestamp_previous_year =  Measurement(mapper.get_timestamp(6826 + 42 * block),
                 "",
@@ -594,11 +591,11 @@ class Impact(Device):
             last_15min =  Measurement(active_power_measurements_mapper.get_t5(5251),
                 "W",
             )
-            max_15min_since_reset =  Measurement(mapper.get_t5(6778)/1000,
-                "kW",
+            max_15min_since_reset =  Measurement(mapper.get_t5(6778),
+                "W",
             )
-            active_energy_total =  Measurement(mapper.get_t5(6774)/1000,
-                "kW",
+            active_energy_total =  Measurement(mapper.get_uint32(6774)* (10**exponent),
+                "W",
             )
             timestamp =  Measurement(mapper.get_timestamp(6780),
                 "",
@@ -629,11 +626,11 @@ class Impact(Device):
             last_15min =  Measurement(active_power_measurements_mapper.get_t5(5259),
                 "W",
             )
-            max_15min_since_reset =  Measurement(mapper.get_t5(6782)/1000,
-                "kW",
+            max_15min_since_reset =  Measurement(mapper.get_uint32(6782)* (10**exponent),
+                "W",
             )
-            active_energy_total =  Measurement(mapper.get_t5(6776)/1000,
-                "kW",
+            active_energy_total =  Measurement(mapper.get_uint32(6776)* (10**exponent),
+                "W",
             )
             timestamp =  Measurement(mapper.get_timestamp(6784),
                 "",
