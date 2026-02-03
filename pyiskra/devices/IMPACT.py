@@ -406,7 +406,8 @@ class Impact(Device):
 
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
-            return await self.adapter.get_tb_measurements()
+            if self.supports_iMC_functions:
+                return await self.adapter.get_tb_measurements()
         
         elif isinstance(self.adapter, Modbus):
             if (not self.supports_time_blocks):
