@@ -67,7 +67,7 @@ class Impact(Device):
             # check time blocks support
             self.supports_time_blocks = await self.check_time_blocks_support()  
         elif isinstance(self.adapter, RestAPI):
-            self.supports_iMC_functions = await self.adapter.check_time_blocks_support()
+            self.supports_time_blocks = await self.adapter.check_time_blocks_support()
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
@@ -373,24 +373,8 @@ class Impact(Device):
         """
         Check SW version for time blocks support
         """
-        cnf_data = await self.adapter.read_input_registers(13, 1)
-        mapper = ModbusMapper(cnf_data, 13)
-        cnf_data = mapper.get_uint16(13)
-        sw_version = cnf_data/100
-        if sw_version < 1 or sw_version > 1.5:
-            return True
-        else:
-            return False
-
-    async def check_time_blocks_support(self):
-        """
-        Get version of meter software
-        """
-        log.debug(f"Get meter software version.")
-        cnf_data = await self.adapter.read_input_registers(13, 1)
-        mapper = ModbusMapper(cnf_data, 13)
-        cnf_data = mapper.get_uint16(13)
-        sw_version = cnf_data / 100
+        basic_info = await self.adapter.get_basic_info()
+        sw_version = basic_info.sw_ver
         if sw_version < 1 or sw_version > 1.5:
             return True
         else:
@@ -406,7 +390,10 @@ class Impact(Device):
 
         if isinstance(self.adapter, RestAPI):
             log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
-            return await self.adapter.get_tb_measurements()
+            if self.supports_time_blocks:
+                return await self.adapter.get_tb_measurements()
+            else:
+                return None
         
         elif isinstance(self.adapter, Modbus):
             if (not self.supports_time_blocks):

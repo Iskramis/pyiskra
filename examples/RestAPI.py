@@ -47,7 +47,7 @@ async def main():
                 )
             print()
 
-        if device.supports_iMC_functions:
+        if device.supports_time_blocks:
             for index, time_block in enumerate(device.time_blocks_measurements.time_blocks): 
                 block = time_block.consumed_energy[index]
                 print(f"Time block {index+1} - This Month: {block.this_month.value}{block.this_month.units}") 
