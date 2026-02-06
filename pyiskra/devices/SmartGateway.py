@@ -24,7 +24,7 @@ class SmartGateway(Device):
     """
 
     DEVICE_PARAMETERS = {
-        "SG": {"phases": 0, "resettable_counters": 0, "non_resettable_counters": 0}
+        "SG": {"phases": 0}
     }
 
     is_gateway = True

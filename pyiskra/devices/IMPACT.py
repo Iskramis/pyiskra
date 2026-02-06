@@ -11,9 +11,15 @@ from ..helper import (
     MeasurementType,
     ModbusMapper,
     Measurements,
+    Time_Blocks_Measurements,
+    Time_Block,
     Measurement,
     Phase_Measurements,
     Total_Measurements,
+    Consumed_Energy,
+    Excess_Power,
+    Max_15min_Power,
+    Active_Power_Measurements,
     Counter,
     Counters,
     get_counter_units,
@@ -53,6 +59,14 @@ class Impact(Device):
         This method retrieves basic information, updates the status, and logs a success message.
         """
         await self.get_basic_info()
+
+        if isinstance(self.adapter, Modbus):
+            # Get nominal power
+            self.nominal_power = await self.get_used_current_and_voltage()
+            # check time blocks support
+            self.supports_time_blocks = await self.check_time_blocks_support()  
+        elif isinstance(self.adapter, RestAPI):
+            self.supports_time_blocks = await self.adapter.check_time_blocks_support()
         await self.update_status()
         log.debug(f"Successfully initialized {self.model} {self.serial}")
 
@@ -308,9 +322,312 @@ class Impact(Device):
 
             self.measurements = await self.get_measurements()
             self.counters = await self.get_counters()
+            # Time blocks measurements
+            self.time_blocks_measurements = await self.get_time_blocks_measurements()
 
             # if the adapter is Modbus, close the connection
             if isinstance(self.adapter, Modbus):
                 await self.adapter.close_connection()
 
             self.update_timestamp = time.time()
+
+    async def get_used_current_and_voltage(self):
+        """
+        Get meter configuration of used current and voltage.
+        """
+        log.debug(f"Getting config registers.")
+        cnf_data = await self.adapter.read_holding_registers(148, 2)
+        mapper = ModbusMapper(cnf_data, 148)
+
+        cnf_data = await self.adapter.read_input_registers(15, 4)
+        data_mapper = ModbusMapper(cnf_data, 15) # used voltage and current in cV & cA
+
+        used_current = (mapper.get_uint16(148)/10000) * (data_mapper.get_uint16(17)/100)
+        used_voltage = (mapper.get_uint16(149)/10000) * (data_mapper.get_uint16(15)/100)
+
+        nominal_power = 3 * used_voltage * used_current
+
+        return nominal_power
+            
+    async def get_number_of_time_blocks(self):
+        """
+        Get meter configuration status.
+        """
+        log.debug(f"Getting config register status.")
+        cnf_data = await self.adapter.read_input_registers(6761, 1)
+        time_blocks = ModbusMapper(cnf_data, 6761)
+        return time_blocks
+    
+    async def check_time_blocks_support(self):
+        """
+        Check Time Blocks support
+        """
+        mapper = await self.get_number_of_time_blocks()
+        number_of_blocks = mapper.get_uint16(6761)
+        if number_of_blocks == 5:
+            return True
+        else:
+            return False
+
+    async def get_time_blocks_measurements(self):
+        """
+        Retrieves time block measurements from the device.
+
+        Returns:
+            dict: A dictionary containing the time blocks measurements.
+        """
+
+        if isinstance(self.adapter, RestAPI):
+            log.debug(f"Getting counters from Rest API for {self.model} {self.serial}")
+            if self.supports_time_blocks:
+                return await self.adapter.get_tb_measurements()
+            else:
+                return None
+        
+        elif isinstance(self.adapter, Modbus):
+            if (not self.supports_time_blocks):
+                return None
+            # Open the connection
+            handle_connection = not self.adapter.connected
+            if handle_connection:
+                await self.adapter.open_connection()
+
+            log.debug(f"Getting time blocks measurements for {self.model} {self.serial}")
+            data = await self.adapter.read_input_registers(6761, 238)
+            mapper = ModbusMapper(data, 6761)
+
+            data = await self.adapter.read_holding_registers(990, 5)
+            limits__mapper = ModbusMapper(data, 990)
+
+            active_power_measurements = await self.adapter.read_input_registers(5244, 18)
+            active_power_measurements_mapper = ModbusMapper(active_power_measurements, 5244)
+
+            capture_timestamp = await self.adapter.read_input_registers(4901, 2)
+            capture_timestamp_mapper = ModbusMapper(capture_timestamp, 4901)
+
+            pred_15min_active_limit = await self.adapter.read_input_registers(5261, 2)
+            pred_15min_active_limit_mapper = ModbusMapper(pred_15min_active_limit, 5261)
+
+            if handle_connection:
+                await self.adapter.close_connection()
+
+            time_blocks = []
+            consumed_energy = []
+            excess_power = []
+            max_15min_power = []
+
+            number_of_blocks = mapper.get_uint16(6761)
+            exponent = mapper.get_int16(6762)
+
+            for block in range (number_of_blocks):
+                total =  Measurement(mapper.get_uint32(6786 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                timestamp_total =  Measurement(capture_timestamp_mapper.get_timestamp(4901),
+                "",
+                )
+                last_month =  Measurement(mapper.get_uint32(6788 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                timestamp_last_month =  Measurement(mapper.get_timestamp(6766),
+                "",
+                )
+                two_months_ago =  Measurement(mapper.get_uint32(6790 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                timestamp_two_months_ago =  Measurement(mapper.get_timestamp(6768),
+                "",
+                )
+                last_year =  Measurement(mapper.get_uint32(6792 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                timestamp_last_year =  Measurement(mapper.get_timestamp(6770),
+                "",
+                )
+                two_years_ago =  Measurement(mapper.get_uint32(6794 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                timestamp_two_years_ago =  Measurement(mapper.get_timestamp(6772),
+                "",
+                )
+                this_month =  Measurement(mapper.get_uint32(6796 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                previous_month =  Measurement(mapper.get_uint32(6798 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                this_year =  Measurement(mapper.get_uint32(6800 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                previous_year =  Measurement(mapper.get_uint32(6802 + 42 * block)* (10**exponent),
+                    "Wh",
+                )
+                consumed_energy.append(
+                    Consumed_Energy(
+                        total,
+                        timestamp_total,
+                        last_month,
+                        timestamp_last_month,
+                        two_months_ago,
+                        timestamp_two_months_ago,
+                        last_year,
+                        timestamp_last_year,
+                        two_years_ago,
+                        timestamp_two_years_ago,
+                        this_month,
+                        previous_month,
+                        this_year,
+                        previous_year,
+                    )
+                )
+                excess_power_limit =  Measurement(round((limits__mapper.get_uint16(990 + 1 * block) * (self.nominal_power/1000))/10), 
+                    "W",
+                )
+                excess_power_this_month =  Measurement(mapper.get_t5(6804 + 42 * block),
+                    "W",
+                )
+                excess_power_previous_month =  Measurement(mapper.get_t5(6806 + 42 * block),
+                    "W",
+                )
+                excess_power.append(
+                    Excess_Power(
+                        excess_power_limit,
+                        excess_power_this_month,
+                        excess_power_previous_month,
+                    )
+                )
+                max_15min_power_since_reset =  Measurement(mapper.get_t5(6808 + 42 * block),
+                    "W",
+                )
+                timestamp_since_reset =  Measurement(mapper.get_timestamp(6810 + 42 * block),
+                "",
+                )
+                max_15min_power_this_month =  Measurement(mapper.get_t5(6812 + 42 * block),
+                    "W",
+                )
+                timestamp_this_month =  Measurement(mapper.get_timestamp(6814 + 42 * block),
+                "",
+                )
+                max_15min_power_previous_month =  Measurement(mapper.get_t5(6816 + 42 * block),
+                    "W",
+                )
+                timestamp_previous_month =  Measurement(mapper.get_timestamp(6818 + 42 * block),
+                "",
+                )
+                max_15min_power_this_year =  Measurement(mapper.get_t5(6820 + 42 * block),
+                    "W",
+                )
+                timestamp_this_year =  Measurement(mapper.get_timestamp(6822 + 42 * block),
+                "",
+                )
+                max_15min_power_previous_year =  Measurement(mapper.get_t5(6824 + 42 * block),
+                    "W",
+                )
+                timestamp_previous_year =  Measurement(mapper.get_timestamp(6826 + 42 * block),
+                "",
+                )
+                reset_timestamp =  Measurement(mapper.get_timestamp(6764),
+                "",
+                )
+                max_15min_power.append(
+                    Max_15min_Power(
+                        max_15min_power_since_reset,
+                        timestamp_since_reset,
+                        max_15min_power_this_month,
+                        timestamp_this_month,
+                        max_15min_power_previous_month,
+                        timestamp_previous_month,
+                        max_15min_power_this_year,
+                        timestamp_this_year,
+                        max_15min_power_previous_year,
+                        timestamp_previous_year,
+                        reset_timestamp,
+                    )
+                )
+
+                time_blocks.append(
+                    Time_Block(
+                        consumed_energy,
+                        excess_power,
+                        max_15min_power,
+                    )
+                )
+
+            actual_value =  Measurement(active_power_measurements_mapper.get_t5(5245),
+                "W",
+            )
+            thermal_function =  Measurement(active_power_measurements_mapper.get_t5(5247),
+                "W",
+            )
+            predicted_15min =  Measurement(active_power_measurements_mapper.get_t5(5249),
+                "W",
+            )
+            predicted_15min_active_limit =  Measurement(pred_15min_active_limit_mapper.get_int16(5261)/100,
+                "%",
+            )
+            last_15min =  Measurement(active_power_measurements_mapper.get_t5(5251),
+                "W",
+            )
+            max_15min_since_reset =  Measurement(mapper.get_t5(6778),
+                "W",
+            )
+            active_energy_total =  Measurement(mapper.get_uint32(6774)* (10**exponent),
+                "W",
+            )
+            timestamp =  Measurement(mapper.get_timestamp(6780),
+                "",
+            )
+            active_power_measurements_import = Active_Power_Measurements(
+                actual_value, 
+                thermal_function,
+                predicted_15min,
+                predicted_15min_active_limit,
+                last_15min,
+                max_15min_since_reset,
+                active_energy_total,
+                timestamp,
+            )
+            
+            actual_value =  Measurement(active_power_measurements_mapper.get_t5(5253),
+                "W",
+            )
+            thermal_function =  Measurement(active_power_measurements_mapper.get_t5(5255),
+                "W",
+            )
+            predicted_15min =  Measurement(active_power_measurements_mapper.get_t5(5257),
+                "W",
+            )
+            predicted_15min_active_limit =  Measurement(0,
+                "",
+            )
+            last_15min =  Measurement(active_power_measurements_mapper.get_t5(5259),
+                "W",
+            )
+            max_15min_since_reset =  Measurement(mapper.get_uint32(6782)* (10**exponent),
+                "W",
+            )
+            active_energy_total =  Measurement(mapper.get_uint32(6776)* (10**exponent),
+                "W",
+            )
+            timestamp =  Measurement(mapper.get_timestamp(6784),
+                "",
+            )
+            active_power_measurements_export = Active_Power_Measurements(
+                actual_value, 
+                thermal_function,
+                predicted_15min,
+                predicted_15min_active_limit,
+                last_15min,
+                max_15min_since_reset,
+                active_energy_total,
+                timestamp,
+            )
+            
+            active_block_index =  Measurement(mapper.get_uint16(6763),
+                "",
+            ) 
+            time_to_end_interval =  Measurement(active_power_measurements_mapper.get_uint16(5244),
+                "s",
+            )
+
+            return Time_Blocks_Measurements(time_blocks, active_power_measurements_import, active_power_measurements_export, active_block_index, time_to_end_interval)

@@ -29,9 +29,12 @@ class Device:
     is_gateway = False
     supports_measurements = False
     supports_counters = False
+    supports_time_blocks = False
     measurements = None
     counters = None
     phases = 0
+    current_nominal = 0
+    voltage_nominal = 0
     non_resettable_counters = 0
     resettable_counters = 0
     fw_version = None
@@ -125,8 +128,8 @@ class Device:
         for model_pattern, parameters in self.DEVICE_PARAMETERS.items():
             if re.match(model_pattern, self.model):
                 self.phases = parameters["phases"]
-                self.resettable_counters = parameters["resettable_counters"]
-                self.non_resettable_counters = parameters["non_resettable_counters"]
+                self.resettable_counters = parameters.get("resettable_counters", 0)
+                self.non_resettable_counters = parameters.get("non_resettable_counters", 0)
                 break
 
         return basic_info

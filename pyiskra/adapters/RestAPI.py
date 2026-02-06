@@ -9,8 +9,12 @@ from ..helper import (
     Measurement,
     Phase_Measurements,
     Total_Measurements,
+    Time_Blocks_Measurements,
     Counters,
     Counter,
+    Time_Block,
+    Consumed_Energy,
+    Excess_Power,
     get_counter_type,
 )
 
@@ -397,3 +401,172 @@ class RestAPI(Adapter):
             location=json_data.get("location"),
             sw_ver=json_data.get("sw_ver"),
         )
+    
+    async def check_time_blocks_support(self):
+        """
+        Check if device support time blocks.
+
+        Returns:
+            bool: Boolean value of support status.
+
+        Raises:
+            ConnectionError: If an error occurs while connecting to the RestAPI.
+        """
+        
+        self.number_of_time_blocks = 0
+
+        json_data = None
+
+        json_data = await self.get_resource("api/counter/" + str(self.device_index))
+
+        json_data = json_data.get("counters", {})
+
+        block_data = json_data.get("block")
+
+        if block_data != None:
+            # get number of time blocks from RestAPI
+            block = block_data.get("blocks", [])[0]
+            for item in block:
+                if "time_block" in item:
+                    self.number_of_time_blocks += 1            
+            return True
+        else:
+            return False
+
+    
+    async def get_tb_measurements(self):
+        """
+        Get time blocks.
+
+        Returns:
+            tuple: A tuple containing the time block measurements.
+
+        Raises:
+            ConnectionError: If an error occurs while connecting to the RestAPI.
+        """
+        json_data = None
+
+        json_data = await self.get_resource("api/counter/" + str(self.device_index))
+
+        json_data = json_data.get("counters", {})
+
+        time_blocks = []
+
+        consumed_energy = []
+        excess_power = []
+        max_15min_power = None
+
+        active_power_measurements_import = None
+        active_power_measurements_export = None
+        time_to_end_interval = None
+
+        total = None
+        timestamp_total = None
+        last_month= None
+        timestamp_last_month = None
+        two_months_ago = None 
+        timestamp_two_months_ago = None
+        last_year = None
+        timestamp_last_year = None
+        two_years_ago = None
+        timestamp_two_years_ago = None
+
+        excess_power_limit = None
+
+        if json_data.get("block"):
+
+            block_data = json_data.get("block", {})
+
+
+            active_block_index = Measurement(
+                                                block_data.get("active_block"), 
+                                                "",
+                                             )
+            
+        
+            try:
+                for block_index in range (self.number_of_time_blocks):           
+                    for block in block_data.get("blocks", []): 
+                        if block.get("name") == "This Month Consumed Energy":  
+                            this_month = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        elif block.get("name") == "Previous Month Consumed Energy":  
+                            previous_month = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        elif block.get("name") == "This Year Consumed Energy":  
+                            this_year = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        elif block.get("name") == "Previous Year Consumed Energy":  
+                            previous_year = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        elif block.get("name") == "This Month Excess Power":  
+                            excess_power_this_month = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        elif block.get("name") == "Previous Month Excess Power":  
+                            excess_power_previous_month = Measurement(
+                                    block.get(f"time_block_{block_index + 1}"),
+                                    block.get("unit"),
+                            )
+                        else:
+                            this_month = Measurement(0, "")
+                            previous_month = Measurement(0, "")
+                            this_year = Measurement(0, "")
+                            previous_year = Measurement(0, "")
+                            excess_power_this_month = Measurement(0, "")
+                            excess_power_previous_month = Measurement(0, "")
+
+
+
+                    consumed_energy.append(
+                        Consumed_Energy(
+                            total,
+                            timestamp_total,
+                            last_month,
+                            timestamp_last_month,
+                            two_months_ago,
+                            timestamp_two_months_ago,
+                            last_year,
+                            timestamp_last_year,
+                            two_years_ago,
+                            timestamp_two_years_ago,
+                            this_month,
+                            previous_month,
+                            this_year,
+                            previous_year,
+                        )
+                    )
+                    excess_power.append(
+                        Excess_Power(
+                            excess_power_limit,
+                            excess_power_this_month,
+                            excess_power_previous_month,
+                        )
+                        )
+
+
+                    time_blocks.append(
+                        Time_Block(
+                            consumed_energy,
+                            excess_power,
+                            max_15min_power,
+                        )
+                    )
+
+            except Exception as e:
+                log.error(
+                    "Failed to parse resettable counter: %s: %s",
+                    block.get("name"),
+                    e,
+                )
+
+        return Time_Blocks_Measurements(time_blocks, active_power_measurements_import, active_power_measurements_export, active_block_index, time_to_end_interval)
